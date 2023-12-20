@@ -267,8 +267,9 @@ class MellingerController(object):
                 self.sbc_last_safe_acc = np.array(new_acc)
                 acc_for_control = np.array(new_acc)
             else:
-                if self.sbc_last_safe_acc is not None:
-                    acc_for_control = np.array(self.sbc_last_safe_acc)
+                # if self.sbc_last_safe_acc is not None:
+                #     acc_for_control = np.array(self.sbc_last_safe_acc)
+                acc_for_control = np.array(acc_rl)
         else:
             acc_for_control = np.array(acc_des)
 
