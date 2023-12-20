@@ -249,6 +249,7 @@ class QuadrotorEnvMulti(gym.Env):
             self.sbc_max_neighbor_aggressive = sbc_max_neighbor_aggressive
             self.sbc_max_obst_aggressive = sbc_max_obst_aggressive
             self.sbc_max_room_aggressive = sbc_max_room_aggressive
+            self.none_sol_count = [0 for _ in range(self.num_agents)]
 
         # Log information for plots
         # # Log obst pos
@@ -510,6 +511,9 @@ class QuadrotorEnvMulti(gym.Env):
 
         # # Log obst pos
         self.file_counter += 1
+        if self.enable_sbc:
+            self.none_sol_count = [0 for _ in range(self.num_agents)]
+
         return obs
 
     def step(self, actions):
@@ -591,8 +595,10 @@ class QuadrotorEnvMulti(gym.Env):
                               'sbc_obst_aggressive': sbc_obst_aggressive[i],
                               'sbc_room_aggressive': sbc_room_aggressive,
                               'agg_unclip': actions_aggressive_unclip[i],
+                               'no_sol': self.none_sol_count[i],
                               }
                 )
+                self.none_sol_count[i] = info['no_sol_count']
             else:
                 observation, reward, done, info = self.envs[i].step(
                     action=a,
@@ -855,6 +861,9 @@ class QuadrotorEnvMulti(gym.Env):
                             self.obst_quad_collisions_after_settle
                         infos[i]['episode_extra_stats'][f'{scenario_name}/num_collisions_obst'] = \
                             self.obst_quad_collisions_per_episode
+                    if self.enable_sbc:
+                        infos[i]['episode_extra_stats']['no_sol_num'] = np.mean(self.none_sol_count)
+
 
             if not self.saved_in_replay_buffer:
                 # agent_success_rate: base_success_rate, based on per agent

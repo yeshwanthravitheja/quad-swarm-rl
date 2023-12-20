@@ -251,7 +251,7 @@ class MellingerController(object):
         acc_rl = np.array(acc_des)
         acc_for_control = np.array(acc_des)
         sbc_distance_to_boundary = None
-
+        no_sol_count = observation['no_sol']
         if self.enable_sbc and observation is not None:
             new_acc, sbc_distance_to_boundary = self.sbc.plan(
                 self_state=observation["self_state"],
@@ -270,6 +270,7 @@ class MellingerController(object):
                 # if self.sbc_last_safe_acc is not None:
                 #     acc_for_control = np.array(self.sbc_last_safe_acc)
                 acc_for_control = np.array(acc_rl)
+                no_sol_count += 1
         else:
             acc_for_control = np.array(acc_des)
 
@@ -305,4 +306,4 @@ class MellingerController(object):
         dynamics.step(thrusts, dt)
         self.action = thrusts.copy()
 
-        return self.action, acc_for_control_without_grav, sbc_distance_to_boundary
+        return self.action, acc_for_control_without_grav, sbc_distance_to_boundary, no_sol_count
