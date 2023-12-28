@@ -77,8 +77,11 @@ class ExperienceReplayWrapper(gym.Wrapper):
         # Domain randomization
         self.domain_random = domain_random
         if self.domain_random:
-            # Each
+            # Each parameter is a list of values to sample from
             self.dr_params = dr_params
+            self.curr_param_index = 0
+            # Number of levels for each parameter in the domain randomization
+            self.num_levels = [len(self.dr_params[k]) for k in self.dr_params.keys()]
 
         self.max_episode_checkpoints_to_keep = int(
             3.0 / self.replay_buffer.cp_step_size_sec)  # keep only checkpoints from the last 3 seconds
@@ -112,7 +115,7 @@ class ExperienceReplayWrapper(gym.Wrapper):
         if self.domain_random:
             dr_params = self.sample_dr_params()
             self.curr_obst_params = dr_params
-        print(self.curr_obst_params)  # only for debugging
+        # print(self.curr_obst_params)  # only for debugging
         return self.env.reset(dr_params)
 
     def step(self, action):
@@ -131,6 +134,15 @@ class ExperienceReplayWrapper(gym.Wrapper):
                     f"{tag}/replay_buffer_size": len(self.replay_buffer),
                     f"{tag}/avg_replayed": self.replay_buffer.avg_num_replayed(),
                 })
+                if self.domain_random:
+                    for key, val in self.curr_obst_params.items():
+                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_success_rate"] = infos[i]["episode_extra_stats"]["metric/agent_success_rate"]
+                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_col_rate"] = infos[i]["episode_extra_stats"]["metric/agent_col_rate"]
+                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_obst_col_rate"] = infos[i]["episode_extra_stats"]["metric/agent_obst_col_rate"]
+                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_neighbor_col_rate"] = \
+                            infos[i]["episode_extra_stats"]["metric/agent_neighbor_col_rate"]
+                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_deadlock_rate"] = \
+                            infos[i]["episode_extra_stats"]["metric/agent_deadlock_rate"]
                 for k in self.curr_obst_params:
                     infos[i]["episode_extra_stats"][f"{tag}/{k}"] = self.curr_obst_params[k]
 
@@ -198,7 +210,7 @@ class ExperienceReplayWrapper(gym.Wrapper):
             if self.domain_random:
                 dr_params = self.sample_dr_params()
                 self.curr_obst_params = dr_params
-                print(self.curr_obst_params)  # only for debugging
+                # print(self.curr_obst_params)  # only for debugging
             obs = self.env.reset(dr_params)
 
             self.env.saved_in_replay_buffer = False
