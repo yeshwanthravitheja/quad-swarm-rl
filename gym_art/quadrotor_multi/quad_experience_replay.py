@@ -5,6 +5,8 @@ from copy import deepcopy
 import gymnasium as gym
 import numpy as np
 
+from sample_factory.utils.utils import log
+
 
 class ReplayBufferEvent:
     def __init__(self, env, obs):
@@ -83,8 +85,8 @@ class ExperienceReplayWrapper(gym.Wrapper):
             # Number of levels for each parameter in the domain randomization
             self.num_levels = [len(self.dr_params[k]) for k in self.dr_params.keys()]
 
-        self.max_episode_checkpoints_to_keep = int(
-            3.0 / self.replay_buffer.cp_step_size_sec)  # keep only checkpoints from the last 3 seconds
+        # keep only checkpoints from the last 3 seconds
+        self.max_episode_checkpoints_to_keep = int(3.0 / self.replay_buffer.cp_step_size_sec)
         self.episode_checkpoints = deque([], maxlen=self.max_episode_checkpoints_to_keep)
 
         self.save_time_before_collision_sec = 1.5
@@ -116,6 +118,7 @@ class ExperienceReplayWrapper(gym.Wrapper):
             dr_params = self.sample_dr_params()
             self.curr_obst_params = dr_params
         # print(self.curr_obst_params)  # only for debugging
+        log.info('Current obstacle params %s', self.curr_obst_params)
         return self.env.reset(dr_params)
 
     def step(self, action):
@@ -136,9 +139,12 @@ class ExperienceReplayWrapper(gym.Wrapper):
                 })
                 if self.domain_random:
                     for key, val in self.curr_obst_params.items():
-                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_success_rate"] = infos[i]["episode_extra_stats"]["metric/agent_success_rate"]
-                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_col_rate"] = infos[i]["episode_extra_stats"]["metric/agent_col_rate"]
-                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_obst_col_rate"] = infos[i]["episode_extra_stats"]["metric/agent_obst_col_rate"]
+                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_success_rate"] = \
+                        infos[i]["episode_extra_stats"]["metric/agent_success_rate"]
+                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_col_rate"] = \
+                        infos[i]["episode_extra_stats"]["metric/agent_col_rate"]
+                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_obst_col_rate"] = \
+                        infos[i]["episode_extra_stats"]["metric/agent_obst_col_rate"]
                         infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_neighbor_col_rate"] = \
                             infos[i]["episode_extra_stats"]["metric/agent_neighbor_col_rate"]
                         infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_deadlock_rate"] = \
@@ -164,13 +170,17 @@ class ExperienceReplayWrapper(gym.Wrapper):
 
                     steps_ago = int(self.save_time_before_collision_sec / self.replay_buffer.cp_step_size_sec)
                     if steps_ago > len(self.episode_checkpoints):
-                        print(
-                            f"Tried to read past the boundary of checkpoint_history. Steps ago: {steps_ago}, episode checkpoints: {len(self.episode_checkpoints)}, {self.env.envs[0].tick}")
+                        log.info(f"Tried to read past the boundary of checkpoint_history. Steps ago: %s, episode "
+                                 f"checkpoints: %s, tick: %s", str(steps_ago), str(len(self.episode_checkpoints)),
+                                 str(self.env.envs[0].tick))
+
                         raise IndexError
                     else:
                         env, obs = self.episode_checkpoints[-steps_ago]
                         self.replay_buffer.write_cp_to_buffer(env, obs)
-                        self.env.collision_occurred = False  # this allows us to add a copy of this episode to the buffer once again if another collision happens
+                        # this allows us to add a copy of this episode to the buffer once again
+                        # if another collision happens
+                        self.env.collision_occurred = False
 
                         self.last_tick_added_to_buffer = self.env.envs[0].tick
 
@@ -185,9 +195,8 @@ class ExperienceReplayWrapper(gym.Wrapper):
         self.last_tick_added_to_buffer = -1e9
         self.episode_checkpoints = deque([], maxlen=self.max_episode_checkpoints_to_keep)
 
-        if np.random.uniform(0,
-                             1) < self.replay_buffer_sample_prob and self.replay_buffer and self.env.activate_replay_buffer \
-                and len(self.replay_buffer) > 0:
+        if (np.random.uniform(0, 1) < self.replay_buffer_sample_prob and self.replay_buffer and
+                self.env.activate_replay_buffer and len(self.replay_buffer) > 0):
             self.replayed_events += 1
             event = self.replay_buffer.sample_event()
             env = event.env

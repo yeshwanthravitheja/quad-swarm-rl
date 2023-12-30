@@ -102,8 +102,7 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
                 'obst_num': np.arange(cfg.quads_obst_num_min, cfg.quads_obst_num_max + 1, 20),
             }
 
-        env = ExperienceReplayWrapper(env, cfg.replay_buffer_sample_prob, obst_params,
-                                      cfg.quads_domain_random, dr_params)
+        env = ExperienceReplayWrapper(env, cfg.replay_buffer_sample_prob, obst_params, cfg.quads_domain_random, dr_params)
 
     reward_shaping = copy.deepcopy(DEFAULT_QUAD_REWARD_SHAPING)
 

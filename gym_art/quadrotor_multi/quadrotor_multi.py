@@ -881,7 +881,6 @@ class QuadrotorEnvMulti(gym.Env):
                     if self.enable_sbc:
                         infos[i]['episode_extra_stats']['no_sol_num'] = np.mean(self.none_sol_count)
 
-
             if not self.saved_in_replay_buffer:
                 # agent_success_rate: base_success_rate, based on per agent
                 # 0: collision; 1: no collision
