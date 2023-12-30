@@ -29,7 +29,7 @@ class QuadrotorEnvMulti(gym.Env):
                  neighbor_visible_num, neighbor_obs_type, collision_hitbox_radius, collision_falloff_radius,
 
                  # Obstacle
-                 use_obstacles, obst_density, obst_size, obst_spawn_area,
+                 use_obstacles, obst_density, obst_size, obst_spawn_area, obst_gap,
 
                  # Aerodynamics, Numba Speed Up, Scenarios, Room, Replay Buffer, Rendering
                  use_downwash, use_numba, quads_mode, room_dims, use_replay_buffer, quads_view_mode,
@@ -42,11 +42,11 @@ class QuadrotorEnvMulti(gym.Env):
                  # Rendering
                  render_mode='human',
                  # SBC specific
-                 enable_sbc=True, sbc_radius=0.1, sbc_nei_range=5.0, sbc_obst_range=3.0,
+                 enable_sbc=True, sbc_radius=0.1, sbc_nei_range=5.0, sbc_obst_range=3.5,
                  sbc_max_acc=1.0, sbc_max_neighbor_aggressive=5.0, sbc_max_obst_aggressive=5.0,
                  sbc_max_room_aggressive=1.0,
                  # Log
-                 experiment_name='default',
+                 experiment_name='default', obst_num=None,
                  ):
         super().__init__()
 
@@ -79,8 +79,13 @@ class QuadrotorEnvMulti(gym.Env):
         self.envs = []
         # # get number of obstacles
         tmp_num_obstacles = 0
+        self.obst_num = None
         if use_obstacles:
-            tmp_num_obstacles = int(obst_density * obst_spawn_area[0] * obst_spawn_area[1])
+            self.obst_num = obst_num
+            if self.obst_num is None:
+                tmp_num_obstacles = int(obst_density * obst_spawn_area[0] * obst_spawn_area[1])
+            else:
+                tmp_num_obstacles = self.obst_num
 
         for _ in range(self.num_agents):
             e = QuadrotorSingle(
@@ -153,6 +158,12 @@ class QuadrotorEnvMulti(gym.Env):
             self.obst_quad_collisions_after_settle = 0
             self.curr_quad_col = []
             self.obst_density = obst_density
+            self.obst_params = {
+                'obst_density': obst_density,
+                'obst_size': obst_size,
+                'obst_num': obst_num,
+                'obst_gap': obst_gap
+            }
             self.obst_spawn_area = obst_spawn_area
             self.num_obstacles = int(
                 obst_density * obst_spawn_area[0] * obst_spawn_area[1])
@@ -382,7 +393,7 @@ class QuadrotorEnvMulti(gym.Env):
 
         return floor_crash_list, wall_crash_list, ceiling_crash_list
 
-    def obst_generation_given_density(self, grid_size=1.0):
+    def generate_obstacles(self, grid_size=1.0):
         obst_area_length, obst_area_width = int(self.obst_spawn_area[0]), int(self.obst_spawn_area[1])
         num_room_grids = obst_area_length * obst_area_width
 
@@ -391,8 +402,12 @@ class QuadrotorEnvMulti(gym.Env):
 
         room_map = [i for i in range(0, num_room_grids)]
 
-        obst_index = np.random.choice(a=room_map, size=int(
-            num_room_grids * self.obst_density), replace=False)
+        if self.obst_params['obst_num'] is None:
+            obst_num = int(num_room_grids * self.obst_params['obst_density'])
+        else:
+            obst_num = self.obst_params['obst_num']
+
+        obst_index = np.random.choice(a=room_map, size=obst_num, replace=False)
 
         obst_pos_arr = []
         # 0: No Obst, 1: Obst
@@ -400,7 +415,11 @@ class QuadrotorEnvMulti(gym.Env):
         for obst_id in obst_index:
             rid, cid = obst_id // obst_area_width, obst_id - (obst_id // obst_area_width) * obst_area_width
             obst_map[rid, cid] = 1
-            obst_item = list(cell_centers[rid + int(obst_area_length / grid_size) * cid])
+            x, y = cell_centers[rid + int(obst_area_length / grid_size) * cid]
+            # Add some randomness to the x, y position
+            noise = min((grid_size - self.obst_params['obst_size'] - self.obst_params['obst_gap']) / 2, 0)
+            x, y = (x, y) + np.random.uniform(low=-noise, high=noise, size=2)
+            obst_item = list((x, y))
             obst_item.append(self.room_dims[2] / 2.)
             obst_pos_arr.append(obst_item)
 
@@ -417,18 +436,16 @@ class QuadrotorEnvMulti(gym.Env):
                     vis_vel_arrows=False, vis_acc_arrows=True, viz_traces=25, viz_trace_nth_step=1,
                     num_obstacles=self.num_obstacles, scene_index=i))
 
-    def reset(self, obst_density=None, obst_size=None):
+    def reset(self, dr_params=None, options=None):
         obs, rewards, dones, infos = [], [], [], []
 
-        if obst_density:
-            self.obst_density = obst_density
-        if obst_size:
-            self.obst_size = obst_size
+        if dr_params is not None:
+            self.obst_params.update(dr_params)
 
         # Scenario reset
         if self.use_obstacles:
-            self.obstacles = MultiObstacles(obstacle_size=self.obst_size, quad_radius=self.quad_arm)
-            self.obst_map, self.obst_pos_arr, cell_centers = self.obst_generation_given_density()
+            self.obstacles = MultiObstacles(obstacle_size=self.obst_params['obst_size'], quad_radius=self.quad_arm)
+            self.obst_map, self.obst_pos_arr, cell_centers = self.generate_obstacles()
             self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers)
         else:
             self.scenario.reset()

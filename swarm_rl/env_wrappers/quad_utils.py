@@ -1,5 +1,6 @@
 import copy
 
+import numpy as np
 import torch
 from sample_factory.algo.learning.learner import Learner
 from sample_factory.model.actor_critic import create_actor_critic
@@ -52,7 +53,7 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
         collision_falloff_radius=cfg.quads_collision_falloff_radius,
         # Obstacle
         use_obstacles=cfg.quads_use_obstacles, obst_density=cfg.quads_obst_density, obst_size=cfg.quads_obst_size,
-        obst_spawn_area=cfg.quads_obst_spawn_area,
+        obst_spawn_area=cfg.quads_obst_spawn_area, obst_gap=cfg.quads_obst_gap,
 
         # Aerodynamics
         use_downwash=cfg.quads_use_downwash,
@@ -81,14 +82,28 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
         sbc_max_obst_aggressive=cfg.quads_max_obst_aggressive,
         sbc_max_room_aggressive=cfg.quads_max_room_aggressive,
         # Log
-        experiment_name=cfg.experiment,
+        experiment_name=cfg.experiment, obst_num=cfg.quads_obst_num,
     )
 
     if use_replay_buffer:
-        env = ExperienceReplayWrapper(
-            env, cfg.replay_buffer_sample_prob, cfg.quads_obst_density, cfg.quads_obst_size,
-            cfg.quads_domain_random, cfg.quads_obst_density_random, cfg.quads_obst_size_random,
-            cfg.quads_obst_density_min, cfg.quads_obst_density_max, cfg.quads_obst_size_min, cfg.quads_obst_size_max)
+        # Obstacle parameters
+        obst_params = {
+            'obst_size': cfg.quads_obst_size,
+            'obst_density': cfg.quads_obst_density,
+            'obst_gap': cfg.quads_obst_gap,
+            'obst_num': cfg.quads_obst_num,
+        }
+        dr_params = None
+        if cfg.quads_domain_random:
+            dr_params = {
+                'obst_size': np.arange(cfg.quads_obst_size_min, cfg.quads_obst_size_max + 0.1, 0.2),
+                'obst_density': np.arange(cfg.quads_obst_density_min, cfg.quads_obst_density_max + 0.1, 0.2),
+                'obst_gap': np.arange(cfg.quads_obst_gap_min, cfg.quads_obst_gap_max + 0.1, 0.15),
+                'obst_num': np.arange(cfg.quads_obst_num_min, cfg.quads_obst_num_max + 1, 20),
+            }
+
+        env = ExperienceReplayWrapper(env, cfg.replay_buffer_sample_prob, obst_params,
+                                      cfg.quads_domain_random, dr_params)
 
     reward_shaping = copy.deepcopy(DEFAULT_QUAD_REWARD_SHAPING)
 
