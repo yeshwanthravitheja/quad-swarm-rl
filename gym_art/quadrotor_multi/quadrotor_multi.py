@@ -960,8 +960,8 @@ class QuadrotorEnvMulti(gym.Env):
                     infos[i]['episode_extra_stats']['metric/sbc_change_amount/max'] = np.max(self.sbc_change_amount[i])
                     infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_change_amount/max'] = np.max(self.sbc_change_amount[i])
                     # # # min
-                    infos[i]['episode_extra_stats']['metric/sbc_change_amount/max'] = np.min(self.sbc_change_amount[i])
-                    infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_change_amount/max'] = np.min(self.sbc_change_amount[i])
+                    infos[i]['episode_extra_stats']['metric/sbc_change_amount/min'] = np.min(self.sbc_change_amount[i])
+                    infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_change_amount/min'] = np.min(self.sbc_change_amount[i])
 
 
                     if len(item_name) > 0:
