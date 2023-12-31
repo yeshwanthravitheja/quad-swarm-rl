@@ -409,6 +409,7 @@ class QuadrotorEnvMulti(gym.Env):
             x, y = cell_centers[rid + int(obst_area_length / grid_size) * cid]
             # Add some randomness to the x, y position
             noise = min((grid_size - self.obst_size - self.obst_params['obst_gap']) / 2, 0)
+            noise = max(noise, 0)
             x, y = (x, y) + np.random.uniform(low=-noise, high=noise, size=2)
             obst_item = list((x, y))
             obst_item.append(self.room_dims[2] / 2.)
@@ -952,8 +953,16 @@ class QuadrotorEnvMulti(gym.Env):
                     infos[i]['episode_extra_stats']['metric/sbc_modify_num'] = self.sbc_modify_num[i]
                     infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_modify_num'] = self.sbc_modify_num[i]
                     # # sbc_modify_num
-                    infos[i]['episode_extra_stats']['metric/sbc_change_amount'] = self.sbc_change_amount[i]
-                    infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_change_amount'] = self.sbc_change_amount[i]
+                    # # # mean
+                    infos[i]['episode_extra_stats']['metric/sbc_change_amount/mean'] = np.mean(self.sbc_change_amount[i])
+                    infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_change_amount/mean'] = np.mean(self.sbc_change_amount[i])
+                    # # # max
+                    infos[i]['episode_extra_stats']['metric/sbc_change_amount/max'] = np.max(self.sbc_change_amount[i])
+                    infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_change_amount/max'] = np.max(self.sbc_change_amount[i])
+                    # # # min
+                    infos[i]['episode_extra_stats']['metric/sbc_change_amount/max'] = np.min(self.sbc_change_amount[i])
+                    infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_change_amount/max'] = np.min(self.sbc_change_amount[i])
+
 
                     if len(item_name) > 0:
                         # agent_success_rate
@@ -981,7 +990,9 @@ class QuadrotorEnvMulti(gym.Env):
                         # # sbc_modify_num
                         infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_modify_num'] = self.sbc_modify_num[i]
                         # # sbc_modify_num
-                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_change_amount'] = self.sbc_change_amount[i]
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_change_amount/mean'] = np.mean(self.sbc_change_amount[i])
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_change_amount/max'] = np.max(self.sbc_change_amount[i])
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_change_amount/min'] = np.min(self.sbc_change_amount[i])
 
             obs = self.reset()
             # terminate the episode for all "sub-envs"

@@ -5,7 +5,7 @@ _params = ParamGrid(
     [
         ("seed", [0000, 3333]),
         ("quads_max_neighbor_aggressive", [50.0]),
-        ("quads_max_obst_aggressive", [15.0, 25.0]),
+        ("quads_max_obst_aggressive", [25.0]),
         ("quads_max_acc", [4.0]),
     ]
 )
@@ -15,7 +15,7 @@ OBSTACLE_MODEL_CLI = QUAD_BASELINE_CLI_8 + (
     ' --quads_num_agents=8 --quads_obs_repr=xyz_vxyz_R_omega_floor --quads_episode_duration=15.0 '
     '--quads_obs_acc_his=False --quads_cost_enable_extra=False --train_for_env_steps=2000000000 '
     # Obstacle
-    '--quads_obst_density=0.8 --quads_obst_size=0.85 '
+    '--quads_obst_density=0.8 --quads_obst_size=0.85 --quads_obst_gap=0.15 '
     # Cost
     '--quads_cost_cbf_agg=0.0 --quads_cost_rl_mellinger=0.0 --quads_cost_extra_rl_real=0.0 --quads_cost_rl_sbc=0.1 '
     '--quads_sbc_boundary=0.1 --quads_cost_act_change=0.0 '
@@ -29,11 +29,11 @@ OBSTACLE_MODEL_CLI = QUAD_BASELINE_CLI_8 + (
     '--quads_anneal_safe_start_steps=0 --quads_anneal_safe_total_steps=0 --cbf_agg_anneal_steps=0 '
     # Wandb
     '--with_wandb=True --wandb_project=Quad-Hybrid --wandb_user=multi-drones '
-    '--wandb_group=grid_search_no_sol_rl_v1'
+    '--wandb_group=grid_search_no_sol_rl_v2'
 )
 
 _experiment = Experiment(
-    "grid_search_no_sol_rl_v1",
+    "grid_search_no_sol_rl_v2",
     OBSTACLE_MODEL_CLI,
     _params.generate_params(randomize=False),
 )
