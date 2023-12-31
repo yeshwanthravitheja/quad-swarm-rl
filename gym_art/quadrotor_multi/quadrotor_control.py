@@ -252,6 +252,9 @@ class MellingerController(object):
         acc_for_control = np.array(acc_des)
         sbc_distance_to_boundary = None
         no_sol_count = observation['no_sol']
+        modify_num = observation['modify_num']
+        change_amount = observation['change_amount']
+
         if self.enable_sbc and observation is not None:
             new_acc, sbc_distance_to_boundary = self.sbc.plan(
                 self_state=observation["self_state"],
@@ -267,12 +270,14 @@ class MellingerController(object):
                 self.sbc_last_safe_acc = np.array(new_acc)
                 acc_for_control = np.array(new_acc)
             else:
-                # if self.sbc_last_safe_acc is not None:
-                #     acc_for_control = np.array(self.sbc_last_safe_acc)
                 acc_for_control = np.array(acc_rl)
                 no_sol_count += 1
         else:
             acc_for_control = np.array(acc_des)
+
+        if not np.allclose(a=acc_for_control, b=acc_rl, rtol=1e-3, atol=1e-3):
+            modify_num += 1
+            change_amount.append(np.linalg.norm(acc_rl - acc_for_control))
 
         # Question: Why do we need to do this???
         acc_for_control_without_grav = np.array(acc_for_control)
@@ -306,4 +311,4 @@ class MellingerController(object):
         dynamics.step(thrusts, dt)
         self.action = thrusts.copy()
 
-        return self.action, acc_for_control_without_grav, sbc_distance_to_boundary, no_sol_count
+        return self.action, acc_for_control_without_grav, sbc_distance_to_boundary, no_sol_count, modify_num, change_amount

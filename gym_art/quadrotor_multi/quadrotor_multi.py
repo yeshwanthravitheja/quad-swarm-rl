@@ -254,6 +254,8 @@ class QuadrotorEnvMulti(gym.Env):
             self.sbc_max_obst_aggressive = sbc_max_obst_aggressive
             self.sbc_max_room_aggressive = sbc_max_room_aggressive
             self.none_sol_count = [0 for _ in range(self.num_agents)]
+            self.sbc_modify_num = [0 for _ in range(self.num_agents)]
+            self.sbc_change_amount = [[] for _ in range(self.num_agents)]
 
         # Log information for plots
         # # Log obst pos
@@ -519,6 +521,8 @@ class QuadrotorEnvMulti(gym.Env):
         self.file_counter += 1
         if self.enable_sbc:
             self.none_sol_count = [0 for _ in range(self.num_agents)]
+            self.sbc_modify_num = [0 for _ in range(self.num_agents)]
+            self.sbc_change_amount = [[] for _ in range(self.num_agents)]
 
         return obs
 
@@ -601,10 +605,14 @@ class QuadrotorEnvMulti(gym.Env):
                               'sbc_obst_aggressive': sbc_obst_aggressive[i],
                               'sbc_room_aggressive': sbc_room_aggressive,
                               'agg_unclip': actions_aggressive_unclip[i],
-                               'no_sol': self.none_sol_count[i],
+                              'no_sol': self.none_sol_count[i],
+                              'modify_num': self.sbc_modify_num[i],
+                              'change_amount': self.sbc_change_amount[i]
                               }
                 )
                 self.none_sol_count[i] = info['no_sol_count']
+                self.sbc_modify_num[i] = info['modify_num']
+                self.sbc_change_amount[i] = info['change_amount']
             else:
                 observation, reward, done, info = self.envs[i].step(
                     action=a,
@@ -620,7 +628,8 @@ class QuadrotorEnvMulti(gym.Env):
                 self.acc_list[i].append(info['acc'])
                 self.pv_list[i].append({'pos': self.envs[i].dynamics.pos, 'vel': self.envs[i].dynamics.vel})
                 if self.enable_sbc:
-                    self.aggressive_list[i].append({'neighbor': sbc_neighbor_aggressive[i], 'obst': sbc_obst_aggressive[i]})
+                    self.aggressive_list[i].append(
+                        {'neighbor': sbc_neighbor_aggressive[i], 'obst': sbc_obst_aggressive[i]})
 
             self.pos[i, :] = self.envs[i].dynamics.pos
 
@@ -935,6 +944,17 @@ class QuadrotorEnvMulti(gym.Env):
                     infos[i]['episode_extra_stats']['metric/reached_goal_rate'] = reached_goal_ratio
                     infos[i]['episode_extra_stats'][f'{scenario_name}/reached_goal_rate'] = reached_goal_ratio
 
+                    # SBC specific
+                    # # no solution count
+                    infos[i]['episode_extra_stats']['metric/sbc_no_sol_count'] = self.none_sol_count[i]
+                    infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_no_sol_count'] = self.none_sol_count[i]
+                    # # sbc_modify_num
+                    infos[i]['episode_extra_stats']['metric/sbc_modify_num'] = self.sbc_modify_num[i]
+                    infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_modify_num'] = self.sbc_modify_num[i]
+                    # # sbc_modify_num
+                    infos[i]['episode_extra_stats']['metric/sbc_change_amount'] = self.sbc_change_amount[i]
+                    infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_change_amount'] = self.sbc_change_amount[i]
+
                     if len(item_name) > 0:
                         # agent_success_rate
                         infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/agent_success_rate'] = agent_success_ratio
@@ -954,6 +974,14 @@ class QuadrotorEnvMulti(gym.Env):
                         infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/agent_ceil_col_rate'] = agent_ceil_col_ratio
                         # reached_goal_ratio
                         infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/reached_goal_rate'] = reached_goal_ratio
+
+                        # SBC specific
+                        # # no solution count
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_no_sol_count'] = self.none_sol_count[i]
+                        # # sbc_modify_num
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_modify_num'] = self.sbc_modify_num[i]
+                        # # sbc_modify_num
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_change_amount'] = self.sbc_change_amount[i]
 
             obs = self.reset()
             # terminate the episode for all "sub-envs"
