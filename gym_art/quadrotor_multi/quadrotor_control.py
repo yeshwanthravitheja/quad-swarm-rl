@@ -246,12 +246,15 @@ class MellingerController(object):
 
         self.step_func = self.step
 
+        self.no_sol_flag = False
+
     def step(self, dynamics, acc_des, dt, observation=None):
         # Preset
         acc_rl = np.array(acc_des)
         acc_for_control = np.array(acc_des)
         sbc_distance_to_boundary = None
         no_sol_count = observation['no_sol']
+        no_continuous_sol_count = observation['no_continuous_sol']
         modify_num = observation['modify_num']
         change_amount = observation['change_amount']
 
@@ -265,13 +268,19 @@ class MellingerController(object):
                 sbc_obst_aggressive=observation["sbc_obst_aggressive"],
                 sbc_room_aggressive=observation["sbc_room_aggressive"]
             )
-
+            pre_no_sol_flag = self.no_sol_flag
             if new_acc is not None:
                 self.sbc_last_safe_acc = np.array(new_acc)
                 acc_for_control = np.array(new_acc)
+                self.no_sol_flag = False
             else:
                 acc_for_control = np.array(acc_rl)
                 no_sol_count += 1
+                self.no_sol_flag = True
+
+            if pre_no_sol_flag is False and self.no_sol_flag is True:
+                no_continuous_sol_count += 1
+
         else:
             acc_for_control = np.array(acc_des)
 
@@ -311,4 +320,5 @@ class MellingerController(object):
         dynamics.step(thrusts, dt)
         self.action = thrusts.copy()
 
-        return self.action, acc_for_control_without_grav, sbc_distance_to_boundary, no_sol_count, modify_num, change_amount
+        return (self.action, acc_for_control_without_grav, sbc_distance_to_boundary, no_sol_count,
+                no_continuous_sol_count, modify_num, change_amount)

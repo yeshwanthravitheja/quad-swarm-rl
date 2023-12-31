@@ -254,6 +254,7 @@ class QuadrotorEnvMulti(gym.Env):
             self.sbc_max_obst_aggressive = sbc_max_obst_aggressive
             self.sbc_max_room_aggressive = sbc_max_room_aggressive
             self.none_sol_count = [0 for _ in range(self.num_agents)]
+            self.none_continuous_sol_count = [0 for _ in range(self.num_agents)]
             self.sbc_modify_num = [0 for _ in range(self.num_agents)]
             self.sbc_change_amount = [[] for _ in range(self.num_agents)]
 
@@ -522,6 +523,7 @@ class QuadrotorEnvMulti(gym.Env):
         self.file_counter += 1
         if self.enable_sbc:
             self.none_sol_count = [0 for _ in range(self.num_agents)]
+            self.none_continuous_sol_count = [0 for _ in range(self.num_agents)]
             self.sbc_modify_num = [0 for _ in range(self.num_agents)]
             self.sbc_change_amount = [[] for _ in range(self.num_agents)]
 
@@ -607,11 +609,13 @@ class QuadrotorEnvMulti(gym.Env):
                               'sbc_room_aggressive': sbc_room_aggressive,
                               'agg_unclip': actions_aggressive_unclip[i],
                               'no_sol': self.none_sol_count[i],
+                              'no_continuous_sol': self.none_continuous_sol_count[i],
                               'modify_num': self.sbc_modify_num[i],
                               'change_amount': self.sbc_change_amount[i]
                               }
                 )
                 self.none_sol_count[i] = info['no_sol_count']
+                self.none_continuous_sol_count[i] = info['no_continuous_sol_count']
                 self.sbc_modify_num[i] = info['modify_num']
                 self.sbc_change_amount[i] = info['change_amount']
             else:
@@ -877,8 +881,6 @@ class QuadrotorEnvMulti(gym.Env):
                             self.obst_quad_collisions_after_settle
                         infos[i]['episode_extra_stats'][f'{scenario_name}/num_collisions_obst'] = \
                             self.obst_quad_collisions_per_episode
-                    if self.enable_sbc:
-                        infos[i]['episode_extra_stats']['no_sol_num'] = np.mean(self.none_sol_count)
 
             if not self.saved_in_replay_buffer:
                 # agent_success_rate: base_success_rate, based on per agent
@@ -946,23 +948,26 @@ class QuadrotorEnvMulti(gym.Env):
                     infos[i]['episode_extra_stats'][f'{scenario_name}/reached_goal_rate'] = reached_goal_ratio
 
                     # SBC specific
-                    # # no solution count
-                    infos[i]['episode_extra_stats']['metric/sbc_no_sol_count'] = self.none_sol_count[i]
-                    infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_no_sol_count'] = self.none_sol_count[i]
-                    # # sbc_modify_num
-                    infos[i]['episode_extra_stats']['metric/sbc_modify_num'] = self.sbc_modify_num[i]
-                    infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_modify_num'] = self.sbc_modify_num[i]
-                    # # sbc_modify_num
-                    # # # mean
-                    infos[i]['episode_extra_stats']['metric/sbc_change_amount/mean'] = np.mean(self.sbc_change_amount[i])
-                    infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_change_amount/mean'] = np.mean(self.sbc_change_amount[i])
-                    # # # max
-                    infos[i]['episode_extra_stats']['metric/sbc_change_amount/max'] = np.max(self.sbc_change_amount[i])
-                    infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_change_amount/max'] = np.max(self.sbc_change_amount[i])
-                    # # # min
-                    infos[i]['episode_extra_stats']['metric/sbc_change_amount/min'] = np.min(self.sbc_change_amount[i])
-                    infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_change_amount/min'] = np.min(self.sbc_change_amount[i])
-
+                    if self.enable_sbc:
+                        # # no solution count
+                        infos[i]['episode_extra_stats']['metric/sbc_no_sol_count'] = self.none_sol_count[i]
+                        infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_no_sol_count'] = self.none_sol_count[i]
+                        # # no continuous solution count
+                        infos[i]['episode_extra_stats']['metric/sbc_no_continuous_sol_count'] = self.none_continuous_sol_count[i]
+                        infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_no_continuous_sol_count'] = self.none_continuous_sol_count[i]
+                        # # sbc_modify_num
+                        infos[i]['episode_extra_stats']['metric/sbc_modify_num'] = self.sbc_modify_num[i]
+                        infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_modify_num'] = self.sbc_modify_num[i]
+                        # # sbc_modify_num
+                        # # # mean
+                        infos[i]['episode_extra_stats']['metric/sbc_change_amount/mean'] = np.mean(self.sbc_change_amount[i])
+                        infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_change_amount/mean'] = np.mean(self.sbc_change_amount[i])
+                        # # # max
+                        infos[i]['episode_extra_stats']['metric/sbc_change_amount/max'] = np.max(self.sbc_change_amount[i])
+                        infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_change_amount/max'] = np.max(self.sbc_change_amount[i])
+                        # # # min
+                        infos[i]['episode_extra_stats']['metric/sbc_change_amount/min'] = np.min(self.sbc_change_amount[i])
+                        infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_change_amount/min'] = np.min(self.sbc_change_amount[i])
 
                     if len(item_name) > 0:
                         # agent_success_rate
@@ -985,14 +990,17 @@ class QuadrotorEnvMulti(gym.Env):
                         infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/reached_goal_rate'] = reached_goal_ratio
 
                         # SBC specific
-                        # # no solution count
-                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_no_sol_count'] = self.none_sol_count[i]
-                        # # sbc_modify_num
-                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_modify_num'] = self.sbc_modify_num[i]
-                        # # sbc_modify_num
-                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_change_amount/mean'] = np.mean(self.sbc_change_amount[i])
-                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_change_amount/max'] = np.max(self.sbc_change_amount[i])
-                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_change_amount/min'] = np.min(self.sbc_change_amount[i])
+                        if self.enable_sbc:
+                            # # no solution count
+                            infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_no_sol_count'] = self.none_sol_count[i]
+                            # # no continuous solution count
+                            infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_no_continuous_sol_count'] = self.none_continuous_sol_count[i]
+                            # # sbc_modify_num
+                            infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_modify_num'] = self.sbc_modify_num[i]
+                            # # sbc_modify_num
+                            infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_change_amount/mean'] = np.mean(self.sbc_change_amount[i])
+                            infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_change_amount/max'] = np.max(self.sbc_change_amount[i])
+                            infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/sbc_change_amount/min'] = np.min(self.sbc_change_amount[i])
 
             obs = self.reset()
             # terminate the episode for all "sub-envs"
