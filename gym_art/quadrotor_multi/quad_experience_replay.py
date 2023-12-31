@@ -20,12 +20,21 @@ class ReplayBuffer:
         self.control_frequency = control_frequency
         self.cp_step_size_sec = cp_step_size  # how often (seconds) a checkpoint is saved
         self.cp_step_size_freq = self.cp_step_size_sec * self.control_frequency
-        self.buffer_idx = 0
         self.buffer = deque([], maxlen=buffer_size)
+
+    def get_buffer_id(self):
+        max_replayed_id = 0
+        max_replayed_num = 0
+        for i in range(len(self.buffer)):
+            cur_num_replayed = self.buffer[i].num_replayed
+            if cur_num_replayed > max_replayed_num:
+                max_replayed_id = i
+                max_replayed_num = cur_num_replayed
+        return max_replayed_id
 
     def write_cp_to_buffer(self, env, obs):
         """
-        A collision was found and we want to load the corresponding checkpoint from X seconds ago into the buffer to be sampled later on
+        A collision was found, and we want to load the corresponding checkpoint from X seconds ago into the buffer to be sampled later on
         """
         env.saved_in_replay_buffer = True
 
@@ -33,17 +42,20 @@ class ReplayBuffer:
         evt = ReplayBufferEvent(env, obs)
         if len(self.buffer) < self.buffer.maxlen:
             self.buffer.append(evt)
+            add_pos_id = len(self.buffer)
         else:
-            self.buffer[self.buffer_idx] = evt
-        print(f"Added new collision event to buffer at {self.buffer_idx}")
-        self.buffer_idx = (self.buffer_idx + 1) % self.buffer.maxlen
+            buffer_id = self.get_buffer_id()
+            self.buffer[buffer_id] = evt
+            add_pos_id = buffer_id
+
+        log.info('Added new collision event to buffer at: %s', str(add_pos_id))
 
     def sample_event(self):
         """
         Sample an event to replay
         """
         idx = random.randint(0, len(self.buffer) - 1)
-        print(f'Replaying event at idx {idx}')
+        log.info('Replaying event at idx: %s', str(idx))
         self.buffer[idx].num_replayed += 1
         return self.buffer[idx]
 
@@ -66,10 +78,9 @@ class ReplayBuffer:
 
 
 class ExperienceReplayWrapper(gym.Wrapper):
-    def __init__(self, env, replay_buffer_sample_prob, init_obst_params,
-                 domain_random=False, dr_params=None):
+    def __init__(self, env, replay_buffer_sample_prob, init_obst_params, domain_random=False, dr_params=None):
         super().__init__(env)
-        self.replay_buffer = ReplayBuffer(env.envs[0].control_freq)
+        self.replay_buffer = ReplayBuffer(control_frequency=env.envs[0].control_freq)
         self.replay_buffer_sample_prob = replay_buffer_sample_prob
 
         # Default parameters for obstacles, used when domain_random=False
@@ -79,11 +90,7 @@ class ExperienceReplayWrapper(gym.Wrapper):
         # Domain randomization
         self.domain_random = domain_random
         if self.domain_random:
-            # Each parameter is a list of values to sample from
             self.dr_params = dr_params
-            self.curr_param_index = 0
-            # Number of levels for each parameter in the domain randomization
-            self.num_levels = [len(self.dr_params[k]) for k in self.dr_params.keys()]
 
         # keep only checkpoints from the last 3 seconds
         self.max_episode_checkpoints_to_keep = int(3.0 / self.replay_buffer.cp_step_size_sec)
@@ -111,13 +118,12 @@ class ExperienceReplayWrapper(gym.Wrapper):
         return dr_params
 
     def reset(self):
-        """For reset we just use the default implementation."""
+        """For reset we just use the default implementation. This reset actually never called"""
         dr_params = None
         # If using domain randomization, sample new parameters and reset the environment with them
         if self.domain_random:
             dr_params = self.sample_dr_params()
             self.curr_obst_params = dr_params
-        # print(self.curr_obst_params)  # only for debugging
         log.info('Current obstacle params %s', self.curr_obst_params)
         return self.env.reset(dr_params)
 
@@ -137,35 +143,21 @@ class ExperienceReplayWrapper(gym.Wrapper):
                     f"{tag}/replay_buffer_size": len(self.replay_buffer),
                     f"{tag}/avg_replayed": self.replay_buffer.avg_num_replayed(),
                 })
-                if self.domain_random:
-                    for key, val in self.curr_obst_params.items():
-                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_success_rate"] = \
-                        infos[i]["episode_extra_stats"]["metric/agent_success_rate"]
-                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_col_rate"] = \
-                        infos[i]["episode_extra_stats"]["metric/agent_col_rate"]
-                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_obst_col_rate"] = \
-                        infos[i]["episode_extra_stats"]["metric/agent_obst_col_rate"]
-                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_neighbor_col_rate"] = \
-                            infos[i]["episode_extra_stats"]["metric/agent_neighbor_col_rate"]
-                        infos[i]["episode_extra_stats"][f"domain_random/{key}_{val:.2f}_agent_deadlock_rate"] = \
-                            infos[i]["episode_extra_stats"]["metric/agent_deadlock_rate"]
-                for k in self.curr_obst_params:
-                    infos[i]["episode_extra_stats"][f"{tag}/{k}"] = self.curr_obst_params[k]
-
         else:
-            if self.env.use_replay_buffer and self.env.activate_replay_buffer and not self.env.saved_in_replay_buffer \
-                    and self.env.envs[0].tick % self.replay_buffer.cp_step_size_freq == 0:
+            enable_replay_buffer_bool = self.env.use_replay_buffer and self.env.activate_replay_buffer
+            not_in_replay_buffer_bool = not self.env.saved_in_replay_buffer
+            save_period_bool = self.env.envs[0].tick % self.replay_buffer.cp_step_size_freq == 0
+            if enable_replay_buffer_bool and not_in_replay_buffer_bool and save_period_bool:
                 self.save_checkpoint(obs)
 
             collision_flag = self.env.last_step_unique_collisions.any()
             if self.env.use_obstacles:
                 collision_flag = collision_flag or len(self.env.curr_quad_col) > 0
 
-            if collision_flag and self.env.use_replay_buffer and self.env.activate_replay_buffer \
-                    and self.env.envs[0].tick > self.env.collisions_grace_period_seconds * self.env.envs[
-                0].control_freq and not self.env.saved_in_replay_buffer:
-
-                if self.env.envs[0].tick - self.last_tick_added_to_buffer > 5 * self.env.envs[0].control_freq:
+            grace_tick = self.env.collisions_grace_period_seconds * self.env.envs[0].control_freq
+            out_grace_bool = self.env.envs[0].tick > grace_tick
+            if collision_flag and enable_replay_buffer_bool and not_in_replay_buffer_bool and out_grace_bool:
+                if self.env.envs[0].tick - self.last_tick_added_to_buffer > 2 * self.env.envs[0].control_freq:
                     # added this check to avoid adding a lot of collisions from the same episode to the buffer
 
                     steps_ago = int(self.save_time_before_collision_sec / self.replay_buffer.cp_step_size_sec)
@@ -195,8 +187,9 @@ class ExperienceReplayWrapper(gym.Wrapper):
         self.last_tick_added_to_buffer = -1e9
         self.episode_checkpoints = deque([], maxlen=self.max_episode_checkpoints_to_keep)
 
-        if (np.random.uniform(0, 1) < self.replay_buffer_sample_prob and self.replay_buffer and
-                self.env.activate_replay_buffer and len(self.replay_buffer) > 0):
+        replay_bool = np.random.uniform(low=0, high=1) < self.replay_buffer_sample_prob
+        activate_bool = self.env.activate_replay_buffer and len(self.replay_buffer) > 0
+        if replay_bool and activate_bool:
             self.replayed_events += 1
             event = self.replay_buffer.sample_event()
             env = event.env
@@ -219,7 +212,6 @@ class ExperienceReplayWrapper(gym.Wrapper):
             if self.domain_random:
                 dr_params = self.sample_dr_params()
                 self.curr_obst_params = dr_params
-                # print(self.curr_obst_params)  # only for debugging
             obs = self.env.reset(dr_params)
 
             self.env.saved_in_replay_buffer = False

@@ -64,15 +64,12 @@ class NominalSBC:
             min_rel_dist = 100.0
             description_state_pos = -1 * np.ones((self.num_obstacles, 2))
             for idx in range(obst_des_num):
-                try:
-                    description_state_pos[idx] = obstacle_descriptions[idx]['state']['position']
-                except IndexError:
-                    print(len(obstacle_descriptions), idx)
+                description_state_pos[idx] = obstacle_descriptions[idx]['state']['position']
 
-            min_rel_dist = get_obst_min_real_dist(min_rel_dist=min_rel_dist, self_state_pos=self_state['position'][:2],
-                                                  description_state_pos=description_state_pos,
-                                                  rel_pos_arr=obst_rel_pos_arr, rel_pos_norm_arr=obst_rel_pos_norm_arr,
-                                                  neighbor_des_num=obst_des_num)
+            min_rel_dist = get_obst_min_real_dist(
+                min_rel_dist=min_rel_dist, self_state_pos=self_state['position'][:2],
+                description_state_pos=description_state_pos, rel_pos_arr=obst_rel_pos_arr,
+                rel_pos_norm_arr=obst_rel_pos_norm_arr, neighbor_des_num=obst_des_num)
 
             # # Obst min_rel_dist
             obst_safety_distance = self.radius + obstacle_descriptions[0]['radius']
@@ -119,10 +116,7 @@ class NominalSBC:
                                 obstacle_descriptions[0]['maximum_linf_acceleration_lower_bound'])
             obst_description_state_vel = -1 * np.ones((self.num_obstacles, 2))
             for idx in range(obst_des_num):
-                try:
-                    obst_description_state_vel[idx] = obstacle_descriptions[idx]['state']['velocity']
-                except IndexError:
-                    print(len(obstacle_descriptions), idx, obstacle_descriptions)
+                obst_description_state_vel[idx] = obstacle_descriptions[idx]['state']['velocity']
 
             G, h = get_obst_G_h(self_state_vel=self_state['velocity'][:2],
                                 neighbor_descriptions=obst_description_state_vel,

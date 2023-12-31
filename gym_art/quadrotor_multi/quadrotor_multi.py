@@ -46,7 +46,7 @@ class QuadrotorEnvMulti(gym.Env):
                  sbc_max_acc=1.0, sbc_max_neighbor_aggressive=5.0, sbc_max_obst_aggressive=5.0,
                  sbc_max_room_aggressive=1.0,
                  # Log
-                 experiment_name='default', obst_num=None,
+                 experiment_name='default'
                  ):
         super().__init__()
 
@@ -81,11 +81,7 @@ class QuadrotorEnvMulti(gym.Env):
         tmp_num_obstacles = 0
         self.obst_num = None
         if use_obstacles:
-            self.obst_num = obst_num
-            if self.obst_num is None:
-                tmp_num_obstacles = int(obst_density * obst_spawn_area[0] * obst_spawn_area[1])
-            else:
-                tmp_num_obstacles = self.obst_num
+            tmp_num_obstacles = int(obst_density * obst_spawn_area[0] * obst_spawn_area[1])
 
         for _ in range(self.num_agents):
             e = QuadrotorSingle(
@@ -160,13 +156,10 @@ class QuadrotorEnvMulti(gym.Env):
             self.obst_density = obst_density
             self.obst_params = {
                 'obst_density': obst_density,
-                'obst_size': obst_size,
-                'obst_num': obst_num,
                 'obst_gap': obst_gap
             }
             self.obst_spawn_area = obst_spawn_area
-            self.num_obstacles = int(
-                obst_density * obst_spawn_area[0] * obst_spawn_area[1])
+            self.num_obstacles = int(obst_density * obst_spawn_area[0] * obst_spawn_area[1])
             self.obst_map = None
             self.obst_size = obst_size
             self.obst_pos_arr = None
@@ -402,11 +395,7 @@ class QuadrotorEnvMulti(gym.Env):
 
         room_map = [i for i in range(0, num_room_grids)]
 
-        if self.obst_params['obst_num'] is None:
-            obst_num = int(num_room_grids * self.obst_params['obst_density'])
-        else:
-            obst_num = self.obst_params['obst_num']
-
+        obst_num = int(num_room_grids * self.obst_params['obst_density'])
         obst_index = np.random.choice(a=room_map, size=obst_num, replace=False)
 
         obst_pos_arr = []
@@ -417,7 +406,7 @@ class QuadrotorEnvMulti(gym.Env):
             obst_map[rid, cid] = 1
             x, y = cell_centers[rid + int(obst_area_length / grid_size) * cid]
             # Add some randomness to the x, y position
-            noise = min((grid_size - self.obst_params['obst_size'] - self.obst_params['obst_gap']) / 2, 0)
+            noise = min((grid_size - self.obst_size - self.obst_params['obst_gap']) / 2, 0)
             x, y = (x, y) + np.random.uniform(low=-noise, high=noise, size=2)
             obst_item = list((x, y))
             obst_item.append(self.room_dims[2] / 2.)
@@ -444,7 +433,7 @@ class QuadrotorEnvMulti(gym.Env):
 
         # Scenario reset
         if self.use_obstacles:
-            self.obstacles = MultiObstacles(obstacle_size=self.obst_params['obst_size'], quad_radius=self.quad_arm)
+            self.obstacles = MultiObstacles(obstacle_size=self.obst_size, quad_radius=self.quad_arm)
             self.obst_map, self.obst_pos_arr, cell_centers = self.generate_obstacles()
             self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers)
         else:
@@ -913,6 +902,10 @@ class QuadrotorEnvMulti(gym.Env):
                                          agent_neighbor_col_ratio, agent_wall_col_ratio, agent_floor_col_ratio,
                                          agent_ceil_col_ratio, reached_goal_ratio)
 
+                item_name = ''
+                for key, val in self.obst_params.items():
+                    item_name += str(key[5:]) + '_' + str(np.round(val, decimals=2)) + '-'
+
                 for i in range(len(infos)):
                     # agent_success_rate
                     infos[i]['episode_extra_stats']['metric/agent_success_rate'] = agent_success_ratio
@@ -941,6 +934,26 @@ class QuadrotorEnvMulti(gym.Env):
                     # reached_goal_ratio
                     infos[i]['episode_extra_stats']['metric/reached_goal_rate'] = reached_goal_ratio
                     infos[i]['episode_extra_stats'][f'{scenario_name}/reached_goal_rate'] = reached_goal_ratio
+
+                    if len(item_name) > 0:
+                        # agent_success_rate
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/agent_success_rate'] = agent_success_ratio
+                        # agent_deadlock_rate
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/agent_deadlock_rate'] = agent_deadlock_ratio
+                        # agent_col_rate
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/agent_col_rate'] = agent_col_ratio
+                        # agent_neighbor_col_rate
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/agent_neighbor_col_rate'] = agent_neighbor_col_ratio
+                        # agent_obst_col_rate
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/agent_obst_col_rate'] = agent_obst_col_ratio
+                        # agent_wall_col_ratio
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/agent_wall_col_rate'] = agent_wall_col_ratio
+                        # agent_floor_col_ratio
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/agent_floor_col_rate'] = agent_floor_col_ratio
+                        # agent_ceil_col_ratio
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/agent_ceil_col_rate'] = agent_ceil_col_ratio
+                        # reached_goal_ratio
+                        infos[i]['episode_extra_stats'][f'{item_name}/{scenario_name}/reached_goal_rate'] = reached_goal_ratio
 
             obs = self.reset()
             # terminate the episode for all "sub-envs"
