@@ -951,6 +951,8 @@ class QuadrotorEnvMulti(gym.Env):
 
                     # SBC specific
                     if self.enable_sbc:
+                        if len(self.sbc_change_amount[i]) == 0:
+                            self.sbc_change_amount[i].append(0.0)
                         # # no solution count
                         infos[i]['episode_extra_stats']['metric/sbc_no_sol_count'] = self.none_sol_count[i]
                         infos[i]['episode_extra_stats'][f'{scenario_name}/sbc_no_sol_count'] = self.none_sol_count[i]
