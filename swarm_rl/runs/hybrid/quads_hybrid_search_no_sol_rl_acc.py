@@ -4,6 +4,7 @@ from swarm_rl.runs.hybrid.baseline import QUAD_BASELINE_CLI_8
 _params = ParamGrid(
     [
         ("seed", [0000, 3333]),
+        ("quads_episode_duration", [15.0, 20.0]),
         ("quads_cost_enable_extra", [False, True]),
         ("quads_max_neighbor_aggressive", [50.0]),
         ("quads_max_obst_aggressive", [25.0]),
@@ -13,7 +14,7 @@ _params = ParamGrid(
 
 OBSTACLE_MODEL_CLI = QUAD_BASELINE_CLI_8 + (
     # Self
-    ' --quads_num_agents=8 --quads_obs_repr=xyz_vxyz_R_omega_floor --quads_episode_duration=15.0 '
+    ' --quads_num_agents=8 --quads_obs_repr=xyz_vxyz_R_omega_floor '
     '--quads_obs_acc_his=False --train_for_env_steps=2000000000 '
     # Obstacle
     '--quads_obst_density=0.8 --quads_obst_size=0.85 --quads_obst_gap=0.15 '
@@ -30,11 +31,11 @@ OBSTACLE_MODEL_CLI = QUAD_BASELINE_CLI_8 + (
     '--quads_anneal_safe_start_steps=0 --quads_anneal_safe_total_steps=0 --cbf_agg_anneal_steps=0 '
     # Wandb
     '--with_wandb=True --wandb_project=Quad-Hybrid --wandb_user=multi-drones '
-    '--wandb_group=grid_search_no_sol_rl_v2'
+    '--wandb_group=modify_experience_replay'
 )
 
 _experiment = Experiment(
-    "grid_search_no_sol_rl_v2",
+    "modify_experience_replay",
     OBSTACLE_MODEL_CLI,
     _params.generate_params(randomize=False),
 )
