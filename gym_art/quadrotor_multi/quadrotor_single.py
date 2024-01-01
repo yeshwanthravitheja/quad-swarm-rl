@@ -483,7 +483,7 @@ class QuadrotorSingle:
         self.actions[1] = copy.deepcopy(self.actions[0])
         self.actions[0] = copy.deepcopy(action)
 
-        _, acc_sbc, sbc_distance_to_boundary, no_sol_count, no_continuous_sol_count, modify_num, change_amount = (
+        _, acc_sbc, sbc_distance_to_boundary, no_sol_count, no_continuous_sol_count, modify_num, change_amount, no_sol_flag = (
             self.controller.step_func(dynamics=self.dynamics, acc_des=action, dt=self.dt, observation=sbc_data))
 
         if self.his_acc:
@@ -525,7 +525,7 @@ class QuadrotorSingle:
         acc_info = {'acc_ref': action, 'acc_sbc': acc_sbc, 'acc_real': self.dynamics.acc}
         return sv, reward, done, {'rewards': rew_info, 'acc': acc_info, 'no_sol_count': no_sol_count,
                                   'no_continuous_sol_count': no_continuous_sol_count, 'modify_num': modify_num,
-                                  'change_amount': change_amount}
+                                  'change_amount': change_amount, 'no_sol_flag': no_sol_flag}
 
     def resample_dynamics(self):
         """

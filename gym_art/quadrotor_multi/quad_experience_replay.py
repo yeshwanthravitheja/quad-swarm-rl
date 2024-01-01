@@ -131,6 +131,13 @@ class ExperienceReplayWrapper(gym.Wrapper):
         obs, rewards, dones, infos = self.env.step(action)
 
         if any(dones):
+            ctrl_freq = self.env.envs[0].control_freq
+            dist_1s = ctrl_freq * np.mean(self.env.distance_to_goal[:, int(ctrl_freq):])
+            if dist_1s >= self.env.scenario.approch_goal_metric:
+                steps_ago = min(self.max_episode_checkpoints_to_keep, len(self.episode_checkpoints))
+                env, obs = self.episode_checkpoints[-steps_ago]
+                self.replay_buffer.write_cp_to_buffer(env, obs)
+
             obs = self.new_episode()
             for i in range(len(infos)):
                 if not infos[i]["episode_extra_stats"]:
@@ -154,27 +161,27 @@ class ExperienceReplayWrapper(gym.Wrapper):
             if self.env.use_obstacles:
                 collision_flag = collision_flag or len(self.env.curr_quad_col) > 0
 
+            no_sol_flag = False
+            if self.env.enable_sbc:
+                no_sol_flag = self.env.no_sol_flag
+
+            add_ent_flag = collision_flag or no_sol_flag
+
             grace_tick = self.env.collisions_grace_period_seconds * self.env.envs[0].control_freq
             out_grace_bool = self.env.envs[0].tick > grace_tick
-            if collision_flag and enable_replay_buffer_bool and not_in_replay_buffer_bool and out_grace_bool:
-                if self.env.envs[0].tick - self.last_tick_added_to_buffer > 2 * self.env.envs[0].control_freq:
-                    # added this check to avoid adding a lot of collisions from the same episode to the buffer
+            out_add_gap_bool = self.env.envs[0].tick - self.last_tick_added_to_buffer > 2 * self.env.envs[0].control_freq
+            if add_ent_flag and enable_replay_buffer_bool and not_in_replay_buffer_bool and out_grace_bool and out_add_gap_bool:
+                # added this check to avoid adding a lot of collisions from the same episode to the buffer
+                steps_ago = int(self.save_time_before_collision_sec / self.replay_buffer.cp_step_size_sec)
+                steps_ago = min(steps_ago, len(self.episode_checkpoints))
 
-                    steps_ago = int(self.save_time_before_collision_sec / self.replay_buffer.cp_step_size_sec)
-                    if steps_ago > len(self.episode_checkpoints):
-                        log.info(f"Tried to read past the boundary of checkpoint_history. Steps ago: %s, episode "
-                                 f"checkpoints: %s, tick: %s", str(steps_ago), str(len(self.episode_checkpoints)),
-                                 str(self.env.envs[0].tick))
+                env, obs = self.episode_checkpoints[-steps_ago]
+                self.replay_buffer.write_cp_to_buffer(env, obs)
+                # this allows us to add a copy of this episode to the buffer once again
+                # if another collision happens
+                self.env.collision_occurred = False
 
-                        raise IndexError
-                    else:
-                        env, obs = self.episode_checkpoints[-steps_ago]
-                        self.replay_buffer.write_cp_to_buffer(env, obs)
-                        # this allows us to add a copy of this episode to the buffer once again
-                        # if another collision happens
-                        self.env.collision_occurred = False
-
-                        self.last_tick_added_to_buffer = self.env.envs[0].tick
+                self.last_tick_added_to_buffer = self.env.envs[0].tick
 
         return obs, rewards, dones, infos
 

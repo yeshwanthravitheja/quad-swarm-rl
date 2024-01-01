@@ -247,6 +247,7 @@ class QuadrotorEnvMulti(gym.Env):
 
         # Controller: SBC
         self.enable_sbc = enable_sbc
+        self.no_sol_flag = False
         if enable_sbc:
             self.sbc_nei_range = sbc_nei_range
             self.sbc_obst_range = sbc_obst_range
@@ -618,6 +619,7 @@ class QuadrotorEnvMulti(gym.Env):
                 self.none_continuous_sol_count[i] = info['no_continuous_sol_count']
                 self.sbc_modify_num[i] = info['modify_num']
                 self.sbc_change_amount[i] = info['change_amount']
+                self.no_sol_flag = info['no_sol_flag']
             else:
                 observation, reward, done, info = self.envs[i].step(
                     action=a,

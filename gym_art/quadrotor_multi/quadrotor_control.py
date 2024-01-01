@@ -321,4 +321,4 @@ class MellingerController(object):
         self.action = thrusts.copy()
 
         return (self.action, acc_for_control_without_grav, sbc_distance_to_boundary, no_sol_count,
-                no_continuous_sol_count, modify_num, change_amount)
+                no_continuous_sol_count, modify_num, change_amount, self.no_sol_flag)
