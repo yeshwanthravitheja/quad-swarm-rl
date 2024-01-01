@@ -6,9 +6,6 @@ _params = ParamGrid(
         ("seed", [0000, 3333]),
         ("quads_episode_duration", [15.0, 20.0]),
         ("quads_cost_enable_extra", [False, True]),
-        ("quads_max_neighbor_aggressive", [50.0]),
-        ("quads_max_obst_aggressive", [25.0]),
-        ("quads_max_acc", [4.0]),
     ]
 )
 
@@ -22,7 +19,8 @@ OBSTACLE_MODEL_CLI = QUAD_BASELINE_CLI_8 + (
     '--quads_cost_cbf_agg=0.0 --quads_cost_rl_mellinger=0.0 --quads_cost_extra_rl_real=0.0 --quads_cost_rl_sbc=0.1 '
     '--quads_sbc_boundary=0.1 --quads_cost_act_change=0.0 '
     # SBC
-    '--quads_enable_sbc=True --quads_sbc_radius=0.05 '
+    '--quads_enable_sbc=True --quads_sbc_radius=0.05 --quads_max_neighbor_aggressive=50.0 '
+    '--quads_max_obst_aggressive=25.0 --quads_max_acc=4.0 '
     '--quads_max_room_aggressive=1.0 '
     '--quads_neighbor_range=2.0 --quads_obst_range=2.0 '
     # Annealing
