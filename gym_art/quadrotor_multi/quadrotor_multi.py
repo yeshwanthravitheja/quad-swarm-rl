@@ -227,6 +227,9 @@ class QuadrotorEnvMulti(gym.Env):
 
         # Log
         self.distance_to_goal = [[] for _ in range(len(self.envs))]
+        self.replay_distance_to_goal = [[] for _ in range(len(self.envs))]
+        self.replay_goal_reach_metric = 0.5
+        self.replay_reached_goal_ratio = 0.0
         self.reached_goal = [False for _ in range(len(self.envs))]
 
         # Log metric
@@ -851,6 +854,8 @@ class QuadrotorEnvMulti(gym.Env):
                     }
                 else:
                     self.distance_to_goal = np.array(self.distance_to_goal)
+                    self.replay_distance_to_goal = np.array(self.distance_to_goal)
+                    self.replay_goal_reach_metric = self.scenario.approch_goal_metric
                     self.reached_goal = np.array(self.reached_goal)
                     infos[i]['episode_extra_stats'] = {
                         'num_collisions': self.collisions_per_episode,
@@ -898,6 +903,7 @@ class QuadrotorEnvMulti(gym.Env):
 
                 # reached goal
                 reached_goal_ratio = 1.0 * np.sum(self.reached_goal) / self.num_agents
+                self.replay_reached_goal_ratio = reached_goal_ratio
 
                 # agent_col_rate
                 # Collide with other drones and obstacles
