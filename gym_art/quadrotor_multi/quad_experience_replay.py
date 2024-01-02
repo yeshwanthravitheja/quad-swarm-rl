@@ -133,7 +133,9 @@ class ExperienceReplayWrapper(gym.Wrapper):
         if any(dones):
             not_in_replay_buffer_bool = not self.env.saved_in_replay_buffer
             reached_goal_threshold_bool = self.env.replay_reached_goal_ratio >= 0.6
-            if not_in_replay_buffer_bool and reached_goal_threshold_bool and len(self.env.replay_distance_to_goal[0]) > 0:
+            len_dist_to_goal_bool = len(self.env.replay_distance_to_goal[0]) > 0
+            len_episode_check_bool = len(self.episode_checkpoints) > 0
+            if not_in_replay_buffer_bool and reached_goal_threshold_bool and len_dist_to_goal_bool and len_episode_check_bool:
                 ctrl_freq = self.env.envs[0].control_freq
                 self.env.replay_distance_to_goal = np.array(self.env.replay_distance_to_goal)
                 dist_1s = ctrl_freq * np.mean(self.env.replay_distance_to_goal[:, int(-1 * ctrl_freq):])
