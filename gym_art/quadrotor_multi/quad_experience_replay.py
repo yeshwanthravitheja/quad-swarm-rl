@@ -139,7 +139,12 @@ class ExperienceReplayWrapper(gym.Wrapper):
                 dist_1s = ctrl_freq * np.mean(self.env.replay_distance_to_goal[:, int(-1 * ctrl_freq):])
                 if dist_1s >= self.env.replay_goal_reach_metric:
                     steps_ago = min(self.max_episode_checkpoints_to_keep, len(self.episode_checkpoints))
-                    env, obs = self.episode_checkpoints[-steps_ago]
+                    try:
+                        env, obs = self.episode_checkpoints[-steps_ago]
+                    except:
+                        log.info('len(self.episode_checkpoints): %s', str(len(self.episode_checkpoints)))
+                        env, obs = self.episode_checkpoints[-len(self.episode_checkpoints)]
+
                     self.replay_buffer.write_cp_to_buffer(env, obs)
 
             obs = self.new_episode()
