@@ -14,7 +14,7 @@ from gym_art.quadrotor_multi.collisions.quadrotors import calculate_collision_ma
 from gym_art.quadrotor_multi.collisions.room import perform_collision_with_wall, perform_collision_with_ceiling
 from gym_art.quadrotor_multi.obstacles.obstacles import MultiObstacles
 from gym_art.quadrotor_multi.obstacles.utils import get_cell_centers
-from gym_art.quadrotor_multi.plots.log_info import log_list_data, log_data_v1, log_init_info
+from gym_art.quadrotor_multi.plots.log_info import log_list_data, log_data_v1, log_init_info, log_list_dict_data
 from gym_art.quadrotor_multi.quad_utils import QUADS_OBS_REPR, QUADS_NEIGHBOR_OBS_TYPE, OBS_SINGLE_HIS_ACC_DIM, \
     OBS_SINGLE_HIS_ACC_DIM_NO_SBC
 from gym_art.quadrotor_multi.quadrotor_multi_visualization import Quadrotor3DSceneMulti
@@ -1217,6 +1217,9 @@ class QuadrotorEnvMulti(gym.Env):
                 # # Log all drones pos vel
                 file_name = os.path.join(folder_path, 'pv_list_' + str(i) + '.csv')
                 log_list_data(filename=file_name, data=self.pv_list[i])
+                # # Log aggressiveness list
+                file_name = os.path.join(folder_path, 'agg_list_' + str(i) + '.csv')
+                log_list_dict_data(filename=file_name, data=self.aggressive_list[i])
 
     def set_init_data(self):
         str_counter = str(self.file_counter)

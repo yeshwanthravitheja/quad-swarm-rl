@@ -32,6 +32,12 @@ def load_record_data(file_counter=0):
         pv_list = pd.read_csv(file_name)
         pv_lists.append(pv_list)
 
+    agg_lists = []
+    for i in range(num_agents):
+        file_name = os.path.join(load_folder_path, 'agg_list_' + str(i) + '.csv')
+        agg_list = pd.read_csv(file_name)
+        agg_lists.append(agg_list)
+
     file_name = os.path.join(load_folder_path, 'obstacle_positions.csv')
     obstacle_positions = pd.read_csv(file_name)
     file_name = os.path.join(load_folder_path, 'goal.csv')
@@ -40,11 +46,11 @@ def load_record_data(file_counter=0):
     obstacle_pos = obstacle_positions[['X', 'Y']].values
     goal_pos = goal_positions[['X', 'Y']].values
 
-    return acc_lists, pv_lists, obstacle_positions, goal_positions, obstacle_pos, goal_pos
+    return acc_lists, pv_lists, obstacle_positions, goal_positions, obstacle_pos, goal_pos, agg_lists
 
 
 # Animation update function
-def update(frame, acc_lists, pv_lists, obstacle_positions, goal_positions, ax, trails, trail_buffers):
+def update(frame, acc_lists, pv_lists, obstacle_positions, goal_positions, ax, trails, trail_buffers, agg_lists):
     # Clear previous frame
     ax.clear()
 
@@ -72,6 +78,17 @@ def update(frame, acc_lists, pv_lists, obstacle_positions, goal_positions, ax, t
         trail_buffers[i].append(drone_pos)
         x_trail, y_trail = zip(*trail_buffers[i])
         ax.plot(x_trail, y_trail, '--', color=color_list[i], lw=1, alpha=0.5)
+
+    # Plot aggressive
+    start_x = -4.8
+    ax.text(-6.0, 6.0, f'agg neib', fontsize=8, color='black')
+    ax.text(-6.0, 5.5, f'agg obst', fontsize=8, color='black')
+    for i in range(8):
+        drone_agg = agg_lists[i].iloc[frame, :2]
+        ax.plot(drone_agg[0], drone_agg[1], 'o', color=color_list[i], label='Drone' + str(i))
+        ax.text(start_x, 6.0, f'{color_list[i][:4]}:{drone_agg[0]:.1f}', fontsize=8, color='black')
+        ax.text(start_x, 5.5, f'{color_list[i][:4]}:{drone_agg[1]:.1f}', fontsize=8, color='black')
+        start_x += 1.3
 
     # Plot acceleration vectors
     acc_scale = 0.1  # Scale for the acceleration vectors for visibility
@@ -110,7 +127,7 @@ def main():
 
     for file_counter in range(0, 10):
         start_time = time.time()
-        acc_lists, pv_lists, obstacle_positions, goal_positions, obstacle_pos, goal_pos = load_record_data(file_counter)
+        acc_lists, pv_lists, obstacle_positions, goal_positions, obstacle_pos, goal_pos, agg_lists = load_record_data(file_counter)
 
         # Plot static obstacles
         obstacles, = ax.plot(obstacle_pos[:, 0], obstacle_pos[:, 1], 'o', color='blue', label='Obstacles')
@@ -142,7 +159,7 @@ def main():
         # Create animation
         print('start animation: ' + str(file_counter))
         ani = FuncAnimation(fig, update, frames=range(len(pv_lists[0])),
-                            fargs=(acc_lists, pv_lists, obstacle_positions, goal_positions, ax, trails, trail_buffers),
+                            fargs=(acc_lists, pv_lists, obstacle_positions, goal_positions, ax, trails, trail_buffers, agg_lists),
                             interval=100)
 
         folder_path = os.path.join('videos', experiment_name, scenaio_name)

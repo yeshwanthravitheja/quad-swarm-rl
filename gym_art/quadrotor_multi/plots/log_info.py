@@ -20,6 +20,18 @@ def log_list_data(filename, data):
                     row[f"{key}_{i}"] = value
             writer.writerow(row)
 
+def log_list_dict_data(filename, data):
+    # Writing to a CSV file
+    with open(filename, mode='w', newline='') as file:
+        # Prepare header
+        header = data[0].keys()
+
+        writer = csv.DictWriter(file, fieldnames=header)
+        writer.writeheader()
+
+        for entry in data:
+            writer.writerow(entry)
+
 
 def log_data_v1(filename, data):
     with open(filename, mode='w', newline='') as file:
