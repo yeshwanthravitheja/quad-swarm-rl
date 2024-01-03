@@ -144,7 +144,7 @@ def get_G_h_room(self_state_vel, neighbor_descriptions, rel_pos_arr, rel_pos_nor
         chunk_3 = np.sqrt(max_lin_acc) * rel_pos_dot_rel_vel / np.sqrt(2.0 * safe_rel_dist)
 
         # chunk 4
-        chunk_4 = np.dot(rel_vel, rel_vel)
+        chunk_4 = rel_vel ** 2
 
         bij = chunk_1 + chunk_2 + chunk_3 + chunk_4
         bij_bar = (maximum_linf_acceleration / max_lin_acc) * bij
