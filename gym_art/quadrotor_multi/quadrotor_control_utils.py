@@ -64,30 +64,28 @@ def get_G_h(self_state_vel, neighbor_descriptions, rel_pos_arr, rel_pos_norm_arr
             maximum_linf_acceleration, aggressiveness, G, h, start_id, max_lin_acc, neighbor_des_num):
     for idx in range(neighbor_des_num):
         rel_vel = self_state_vel - neighbor_descriptions[idx]
-        rel_pos_dot_rel_vel = np.dot(rel_pos_arr[idx], rel_vel)
         safe_rel_dist = rel_pos_norm_arr[idx] - safety_distance
-        react_time = rel_pos_dot_rel_vel / rel_pos_norm_arr[idx]
+        rel_pos_dot_rel_vel = np.dot(rel_pos_arr[idx], rel_vel)
 
-        hij = np.sqrt(2.0 * max_lin_acc * safe_rel_dist) + react_time
+        # chunk 1
+        norm_dp_dv = rel_pos_dot_rel_vel / rel_pos_norm_arr[idx]
+        hij = np.sqrt(2.0 * max_lin_acc * safe_rel_dist) + norm_dp_dv
+        chunk_1 = aggressiveness * (hij ** 3) * rel_pos_norm_arr[idx]
 
-        rel_pos_dot_vel = np.dot(rel_pos_arr[idx], self_state_vel)
-        rel_vel_dot_vel = np.dot(rel_vel, self_state_vel)
+        # chunk 2
+        chunk_2 = -(rel_pos_dot_rel_vel ** 2) / (rel_pos_norm_arr[idx] ** 2)
 
-        # item_chunk_prev
-        item_chunk_prev = -rel_pos_dot_rel_vel * rel_pos_dot_vel / (rel_pos_norm_arr[idx] ** 2)
+        # chunk 3
+        chunk_3 = np.sqrt(max_lin_acc) * rel_pos_dot_rel_vel / np.sqrt(2.0 * safe_rel_dist)
 
-        # item_chunk_post
-        chunk_coeff = maximum_linf_acceleration / max_lin_acc
-        chunk_rel_pos = aggressiveness * (hij ** 3) * rel_pos_norm_arr[idx]
-        chunk_rel_pos_dot_rel_vel = np.sqrt(max_lin_acc) * rel_pos_dot_rel_vel
-        chunk_safe_rel_dist = np.sqrt(2.0 * safe_rel_dist)
-        chunk_value = chunk_rel_pos + chunk_rel_pos_dot_rel_vel / chunk_safe_rel_dist
-        item_chunk_post = chunk_coeff * chunk_value
+        # chunk 4
+        chunk_4 = np.dot(rel_vel, rel_vel)
 
-        bij = item_chunk_prev + rel_vel_dot_vel + item_chunk_post
+        bij = chunk_1 + chunk_2 + chunk_3 + chunk_4
+        bij_bar = (maximum_linf_acceleration / max_lin_acc) * bij
 
         G[start_id + idx] = -1.0 * rel_pos_arr[idx]
-        h[start_id + idx] = bij
+        h[start_id + idx] = bij_bar
 
     return G, h
 
@@ -96,32 +94,31 @@ def get_G_h(self_state_vel, neighbor_descriptions, rel_pos_arr, rel_pos_norm_arr
 def get_obst_G_h(self_state_vel, neighbor_descriptions, rel_pos_arr, rel_pos_norm_arr, safety_distance,
                  maximum_linf_acceleration, aggressiveness, G, h, start_id, max_lin_acc, neighbor_des_num):
     for idx in range(neighbor_des_num):
+        # rel pos and rel vel is 2D
         rel_vel = self_state_vel - neighbor_descriptions[idx]
-        rel_pos_dot_rel_vel = np.dot(rel_pos_arr[idx], rel_vel)
         safe_rel_dist = rel_pos_norm_arr[idx] - safety_distance
-        react_time = rel_pos_dot_rel_vel / rel_pos_norm_arr[idx]
+        rel_pos_dot_rel_vel = np.dot(rel_pos_arr[idx], rel_vel)
 
-        hij = np.sqrt(2.0 * max_lin_acc * safe_rel_dist) + react_time
+        # chunk 1
+        norm_dp_dv = rel_pos_dot_rel_vel / rel_pos_norm_arr[idx]
+        hij = np.sqrt(2.0 * max_lin_acc * safe_rel_dist) + norm_dp_dv
+        chunk_1 = aggressiveness * (hij ** 3) * rel_pos_norm_arr[idx]
 
-        rel_pos_dot_vel = np.dot(rel_pos_arr[idx], self_state_vel)
-        rel_vel_dot_vel = np.dot(rel_vel, self_state_vel)
+        # chunk 2
+        chunk_2 = -(rel_pos_dot_rel_vel ** 2) / (rel_pos_norm_arr[idx] ** 2)
 
-        # item_chunk_prev
-        item_chunk_prev = -rel_pos_dot_rel_vel * rel_pos_dot_vel / (rel_pos_norm_arr[idx] ** 2)
+        # chunk 3
+        chunk_3 = np.sqrt(max_lin_acc) * rel_pos_dot_rel_vel / np.sqrt(2.0 * safe_rel_dist)
 
-        # item_chunk_post
-        chunk_coeff = maximum_linf_acceleration / max_lin_acc
-        chunk_rel_pos = aggressiveness * (hij ** 3) * rel_pos_norm_arr[idx]
-        chunk_rel_pos_dot_rel_vel = np.sqrt(max_lin_acc) * rel_pos_dot_rel_vel
-        chunk_safe_rel_dist = np.sqrt(2.0 * safe_rel_dist)
-        chunk_value = chunk_rel_pos + chunk_rel_pos_dot_rel_vel / chunk_safe_rel_dist
-        item_chunk_post = chunk_coeff * chunk_value
+        # chunk 4
+        chunk_4 = np.dot(rel_vel, rel_vel)
 
-        bij = item_chunk_prev + rel_vel_dot_vel + item_chunk_post
+        bij = chunk_1 + chunk_2 + chunk_3 + chunk_4
+        bij_bar = (maximum_linf_acceleration / max_lin_acc) * bij
 
         tmp = -1.0 * rel_pos_arr[idx]
         G[start_id + idx] = np.array([tmp[0], tmp[1], 0.0])
-        h[start_id + idx] = bij
+        h[start_id + idx] = bij_bar
 
     return G, h
 
@@ -132,32 +129,29 @@ def get_G_h_room(self_state_vel, neighbor_descriptions, rel_pos_arr, rel_pos_nor
     max_lin_acc = maximum_linf_acceleration
     for idx in range(len(neighbor_descriptions)):
         rel_vel = self_state_vel[int(idx // 2)]
-        d_self_state_vel = self_state_vel[int(idx // 2)]
         rel_pos_dot_rel_vel = rel_pos_arr[idx] * rel_vel
         safe_rel_dist = rel_pos_norm_arr[idx] - safety_distance
-        react_time = rel_pos_dot_rel_vel / rel_pos_norm_arr[idx]
 
-        hij = np.sqrt(2.0 * max_lin_acc * safe_rel_dist) + react_time
+        # chunk 1
+        norm_dp_dv = rel_pos_dot_rel_vel / rel_pos_norm_arr[idx]
+        hij = np.sqrt(2.0 * max_lin_acc * safe_rel_dist) + norm_dp_dv
+        chunk_1 = aggressiveness * (hij ** 3) * rel_pos_norm_arr[idx]
 
-        rel_pos_dot_vel = rel_pos_arr[idx] * d_self_state_vel
-        rel_vel_dot_vel = rel_vel * d_self_state_vel
+        # chunk 2
+        chunk_2 = -(rel_pos_dot_rel_vel ** 2) / (rel_pos_norm_arr[idx] ** 2)
 
-        # item_chunk_prev
-        item_chunk_prev = -rel_pos_dot_rel_vel * rel_pos_dot_vel / (rel_pos_norm_arr[idx] ** 2)
+        # chunk 3
+        chunk_3 = np.sqrt(max_lin_acc) * rel_pos_dot_rel_vel / np.sqrt(2.0 * safe_rel_dist)
 
-        # item_chunk_post
-        chunk_coeff = 1.0
-        chunk_rel_pos = aggressiveness * (hij ** 3) * rel_pos_norm_arr[idx]
-        chunk_rel_pos_dot_rel_vel = np.sqrt(max_lin_acc) * rel_pos_dot_rel_vel
-        chunk_safe_rel_dist = np.sqrt(2.0 * safe_rel_dist)
-        chunk_value = chunk_rel_pos + chunk_rel_pos_dot_rel_vel / chunk_safe_rel_dist
-        item_chunk_post = chunk_coeff * chunk_value
+        # chunk 4
+        chunk_4 = np.dot(rel_vel, rel_vel)
 
-        bij = item_chunk_prev + rel_vel_dot_vel + item_chunk_post
+        bij = chunk_1 + chunk_2 + chunk_3 + chunk_4
+        bij_bar = (maximum_linf_acceleration / max_lin_acc) * bij
 
         coefficients = np.zeros(3)
         coefficients[int(idx // 2)] = -1.0 * rel_pos_arr[idx]
         G[start_id + idx] = coefficients
-        h[start_id + idx] = bij
+        h[start_id + idx] = bij_bar
 
     return G, h
