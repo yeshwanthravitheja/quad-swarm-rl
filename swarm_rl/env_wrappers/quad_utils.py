@@ -94,8 +94,8 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
         dr_params = None
         if cfg.quads_domain_random:
             dr_params = {
-                'obst_density': np.arange(cfg.quads_obst_density_min, cfg.quads_obst_density_max + 0.1, 0.2),
-                'obst_gap': np.arange(cfg.quads_obst_gap_min, cfg.quads_obst_gap_max + 0.1, 0.15),
+                'obst_density': np.arange(cfg.quads_obst_density_min, cfg.quads_obst_density_max, 0.2),
+                'obst_gap': np.arange(cfg.quads_obst_gap_min, cfg.quads_obst_gap_max, 0.1),
             }
 
         env = ExperienceReplayWrapper(env, cfg.replay_buffer_sample_prob, obst_params, cfg.quads_domain_random, dr_params)
