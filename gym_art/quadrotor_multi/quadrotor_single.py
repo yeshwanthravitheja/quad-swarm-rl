@@ -500,7 +500,7 @@ class QuadrotorSingle:
             no_sol_count = 0
             no_continuous_sol_count = 0
             modify_num = 0
-            change_amount = 0
+            change_amount = []
             no_sol_flag = False
             self.controller.step_func(dynamics=self.dynamics, action=action, dt=self.dt)
         else:

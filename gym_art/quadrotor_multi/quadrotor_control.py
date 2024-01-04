@@ -253,10 +253,16 @@ class MellingerController(object):
         acc_rl = np.array(acc_des)
         acc_for_control = np.array(acc_des)
         sbc_distance_to_boundary = None
-        no_sol_count = observation['no_sol']
-        no_continuous_sol_count = observation['no_continuous_sol']
-        modify_num = observation['modify_num']
-        change_amount = observation['change_amount']
+        if self.enable_sbc:
+            no_sol_count = observation['no_sol']
+            no_continuous_sol_count = observation['no_continuous_sol']
+            modify_num = observation['modify_num']
+            change_amount = observation['change_amount']
+        else:
+            no_sol_count = 0
+            no_continuous_sol_count = 0
+            modify_num = 0
+            change_amount = []
 
         if self.enable_sbc and observation is not None:
             new_acc, sbc_distance_to_boundary = self.sbc.plan(
