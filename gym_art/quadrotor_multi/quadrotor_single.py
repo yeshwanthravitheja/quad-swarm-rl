@@ -35,7 +35,7 @@ GRAV = 9.81  # default gravitational constant
 # reasonable reward function for hovering at a goal and not flying too high
 def compute_reward_weighted(
         goal, cur_pos, rl_acc, acc_sbc, sbc_distance_to_boundary, mellinger_acc, dt, rew_coeff, on_floor, action_prev,
-        aggressive_unclip, enable_sbc, dynamics, cost_enable_extra):
+        aggressive_unclip, enable_sbc, dynamics, cost_enable_extra, enable_thrust):
     # Distance to the goal
     dist = np.linalg.norm(goal - cur_pos)
     cost_pos_raw = dist
@@ -75,29 +75,33 @@ def compute_reward_weighted(
         cost_rl_sbc = 0.0
 
     # Difference between acc_rl & acc_mellinger
-    cost_rl_mellinger_raw = np.linalg.norm(mellinger_acc - rl_acc)
-    cost_rl_mellinger = rew_coeff["rl_mellinger"] * cost_rl_mellinger_raw
+    cost_rl_mellinger_raw = 0.0
+    cost_rl_mellinger = 0.0
 
     # Action change
     cost_act_change_raw = np.linalg.norm(action_prev - rl_acc)
     cost_act_change = rew_coeff["act_change"] * cost_act_change_raw
 
     # Aggressiveness unclip
-    if enable_sbc:
-        aggressiveness_clip = np.clip(aggressive_unclip, a_min=0.0, a_max=1.0)
-        agg_clipped_list = np.abs(aggressive_unclip - aggressiveness_clip)
-        agg_clipped_cost = agg_clipped_list[0] + agg_clipped_list[1]
-        agg_too_large_cost = aggressiveness_clip[0] + aggressiveness_clip[1]
-
-        cost_aggressiveness_raw = agg_clipped_cost + agg_too_large_cost
-        cost_aggressiveness = rew_coeff["cbg_agg"] * cost_aggressiveness_raw
+    if enable_thrust:
+        cost_aggressiveness_raw = 0.0
+        cost_aggressiveness = 0.0
     else:
-        aggressiveness_clip = np.clip(aggressive_unclip, a_min=0.0, a_max=1.0)
-        agg_clipped_list = np.abs(aggressive_unclip - aggressiveness_clip)
-        agg_clipped_cost = agg_clipped_list[0] + agg_clipped_list[1]
+        if enable_sbc:
+            aggressiveness_clip = np.clip(aggressive_unclip, a_min=0.0, a_max=1.0)
+            agg_clipped_list = np.abs(aggressive_unclip - aggressiveness_clip)
+            agg_clipped_cost = agg_clipped_list[0] + agg_clipped_list[1]
+            agg_too_large_cost = aggressiveness_clip[0] + aggressiveness_clip[1]
 
-        cost_aggressiveness_raw = agg_clipped_cost
-        cost_aggressiveness = rew_coeff["cbg_agg"] * cost_aggressiveness_raw
+            cost_aggressiveness_raw = agg_clipped_cost + agg_too_large_cost
+            cost_aggressiveness = rew_coeff["cbg_agg"] * cost_aggressiveness_raw
+        else:
+            aggressiveness_clip = np.clip(aggressive_unclip, a_min=0.0, a_max=1.0)
+            agg_clipped_list = np.abs(aggressive_unclip - aggressiveness_clip)
+            agg_clipped_cost = agg_clipped_list[0] + agg_clipped_list[1]
+
+            cost_aggressiveness_raw = agg_clipped_cost
+            cost_aggressiveness = rew_coeff["cbg_agg"] * cost_aggressiveness_raw
 
     # SBC boundary cost
     if enable_sbc:
@@ -201,7 +205,7 @@ class QuadrotorSingle:
             # Obstacle
             use_obstacles=False, num_obstacles=0,
             # SBC specific,
-            enable_sbc=True, sbc_radius=0.1, sbc_max_acc=2.0,
+            enable_sbc=True, enable_thrust=False, sbc_radius=0.1, sbc_max_acc=2.0,
             # Others
             dim_mode='3D', tf_control=False, sim_freq=200., sim_steps=2, verbose=False, gravity=GRAV, t2w_std=0.005,
             t2t_std=0.0005, excite=False, dynamics_simplification=False):
@@ -240,6 +244,7 @@ class QuadrotorSingle:
         """
         # Preset
         self.cost_enable_extra = cost_enable_extra
+        self.enable_thrust = enable_thrust
         # Numba Speed Up
         self.use_numba = use_numba
         # Neighbor info
@@ -271,7 +276,7 @@ class QuadrotorSingle:
 
         # Preset parameters
         self.obs_repr = obs_repr
-        self.actions = [np.zeros([3, ]), np.zeros([3, ])]
+        self.actions = [np.zeros([4, ]), np.zeros([4, ])]
         self.rew_coeff = None
         self.his_acc = his_acc
         self.his_acc_num = his_acc_num
@@ -384,20 +389,26 @@ class QuadrotorSingle:
             use_numba=self.use_numba, dt=self.dt)
 
         # CONTROL
-        self.controller = MellingerController(
-            dynamics=self.dynamics, sbc_radius=self.sbc_radius,
-            room_box=self.room_box, num_agents=self.num_agents, num_obstacles=self.num_obstacles,
-            sbc_max_acc=self.sbc_max_acc, enable_sbc=self.enable_sbc)
+        if self.enable_thrust:
+            self.controller = RawControl(self.dynamics, zero_action_middle=self.raw_control_zero_middle)
+        else:
+            self.controller = MellingerController(
+                dynamics=self.dynamics, sbc_radius=self.sbc_radius,
+                room_box=self.room_box, num_agents=self.num_agents, num_obstacles=self.num_obstacles,
+                sbc_max_acc=self.sbc_max_acc, enable_sbc=self.enable_sbc)
 
         # ACTIONS
-        # if self.enable_sbc:
-        action_lows_space = np.array([-1, -1, -1, 0, 0], dtype=np.float32)
-        action_high_space = np.array([1, 1, 1, 1, 1], dtype=np.float32)
-        # else:
-        #     action_lows_space = np.array([-1, -1, -1], dtype=np.float32)
-        #     action_high_space = np.array([1, 1, 1], dtype=np.float32)
+        if self.enable_thrust:
+            self.action_space = self.controller.action_space(self.dynamics)
+        else:
+            if self.enable_sbc:
+                action_lows_space = np.array([-1, -1, -1, 0, 0], dtype=np.float32)
+                action_high_space = np.array([1, 1, 1, 1, 1], dtype=np.float32)
+            else:
+                action_lows_space = np.array([-1, -1, -1], dtype=np.float32)
+                action_high_space = np.array([1, 1, 1], dtype=np.float32)
 
-        self.action_space = spaces.Box(low=action_lows_space, high=action_high_space, dtype=np.float32)
+            self.action_space = spaces.Box(low=action_lows_space, high=action_high_space, dtype=np.float32)
 
         # STATE VECTOR FUNCTION
         self.state_vector = getattr(get_state, "state_" + self.obs_repr)
@@ -483,8 +494,19 @@ class QuadrotorSingle:
         self.actions[1] = copy.deepcopy(self.actions[0])
         self.actions[0] = copy.deepcopy(action)
 
-        _, acc_sbc, sbc_distance_to_boundary, no_sol_count, no_continuous_sol_count, modify_num, change_amount, no_sol_flag = (
-            self.controller.step_func(dynamics=self.dynamics, acc_des=action, dt=self.dt, observation=sbc_data))
+        if self.enable_thrust:
+            acc_sbc = None
+            sbc_distance_to_boundary = None
+            no_sol_count = 0
+            no_continuous_sol_count = 0
+            modify_num = 0
+            change_amount = 0
+            no_sol_flag = False
+            self.controller.step_func(dynamics=self.dynamics, action=action, dt=self.dt)
+        else:
+            _, acc_sbc, sbc_distance_to_boundary, no_sol_count, no_continuous_sol_count, modify_num, change_amount, no_sol_flag = (
+                self.controller.step_func(dynamics=self.dynamics, acc_des=action, dt=self.dt, observation=sbc_data))
+
 
         if self.his_acc:
             if self.enable_sbc:
@@ -505,7 +527,7 @@ class QuadrotorSingle:
                 mellinger_acc=self.dynamics.acc, dt=self.control_dt,
                 rew_coeff=self.rew_coeff, on_floor=self.dynamics.on_floor,
                 action_prev=self.actions[1], aggressive_unclip=sbc_data['agg_unclip'], enable_sbc=self.enable_sbc,
-                dynamics=self.dynamics, cost_enable_extra=self.cost_enable_extra,
+                dynamics=self.dynamics, cost_enable_extra=self.cost_enable_extra, enable_thrust=self.enable_thrust
             )
         else:
             reward, rew_info = compute_reward_weighted(
@@ -514,7 +536,7 @@ class QuadrotorSingle:
                 mellinger_acc=self.dynamics.acc, dt=self.control_dt,
                 rew_coeff=self.rew_coeff, on_floor=self.dynamics.on_floor,
                 action_prev=self.actions[1], aggressive_unclip=None, enable_sbc=self.enable_sbc,
-                dynamics=self.dynamics, cost_enable_extra=self.cost_enable_extra,
+                dynamics=self.dynamics, cost_enable_extra=self.cost_enable_extra, enable_thrust=self.enable_thrust
             )
 
         self.tick += 1
@@ -617,7 +639,10 @@ class QuadrotorSingle:
 
         # Reseting some internal state (counters, etc)
         self.tick = 0
-        self.actions = [np.zeros([3, ]), np.zeros([3, ])]
+        if self.enable_thrust:
+            self.actions = [np.zeros([4, ]), np.zeros([4, ])]
+        else:
+            self.actions = [np.zeros([3, ]), np.zeros([3, ])]
 
         if self.his_acc:
             self.obs_his_accs = deque([], maxlen=self.his_acc_num)

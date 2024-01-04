@@ -42,7 +42,7 @@ class QuadrotorEnvMulti(gym.Env):
                  # Rendering
                  render_mode='human',
                  # SBC specific
-                 enable_sbc=True, sbc_radius=0.1, sbc_nei_range=5.0, sbc_obst_range=3.5,
+                 enable_sbc=True, enable_thrust=False, sbc_radius=0.1, sbc_nei_range=5.0, sbc_obst_range=3.5,
                  sbc_max_acc=1.0, sbc_max_neighbor_aggressive=5.0, sbc_max_obst_aggressive=5.0,
                  sbc_max_room_aggressive=1.0,
                  # Log
@@ -52,6 +52,7 @@ class QuadrotorEnvMulti(gym.Env):
 
         # Predefined Parameters
         self.num_agents = num_agents
+        self.enable_thrust = enable_thrust
         obs_self_size = QUADS_OBS_REPR[obs_repr]
         obs_single_his_acc = 0
         if his_acc:
@@ -98,7 +99,7 @@ class QuadrotorEnvMulti(gym.Env):
                 # Obstacle
                 use_obstacles=use_obstacles, num_obstacles=tmp_num_obstacles,
                 # SBC specific,
-                enable_sbc=enable_sbc, sbc_radius=sbc_radius, sbc_max_acc=sbc_max_acc
+                enable_sbc=enable_sbc, enable_thrust=enable_thrust, sbc_radius=sbc_radius, sbc_max_acc=sbc_max_acc
             )
             self.envs.append(e)
 
@@ -536,8 +537,6 @@ class QuadrotorEnvMulti(gym.Env):
     def step(self, actions):
         # The meaning of actions is acceleration change
         actions = np.array(actions)
-        actions_acc = np.clip(actions[:, :3], a_min=-1.0, a_max=1.0)
-        actions_acc = actions_acc * self.action_max
 
         if self.enable_sbc:
             actions_aggressive_unclip = np.array(actions[:, 3:5])
@@ -552,7 +551,13 @@ class QuadrotorEnvMulti(gym.Env):
 
         obs, rewards, dones, infos = [], [], [], []
 
-        for i, a in enumerate(actions_acc):
+        if self.enable_thrust:
+            actions = np.array(actions)
+        else:
+            actions_acc = np.clip(actions[:, :3], a_min=-1.0, a_max=1.0)
+            actions = actions_acc * self.action_max
+
+        for i, a in enumerate(actions):
             self.envs[i].rew_coeff = self.rew_coeff
 
             if self.enable_sbc:

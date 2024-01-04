@@ -141,6 +141,7 @@ def add_quadrotors_env_args(env, parser):
 
     # Enable sbc
     p.add_argument('--quads_enable_sbc', default=True, type=str2bool, help='Whether to use sbc or not ')
+    p.add_argument('--quads_enable_thrust', default=False, type=str2bool, help='Whether to use thrust or not')
 
     # # CBF aggressiveness annealing for:
     # # 1) quads_max_neighbor_aggressive 2) quads_max_obst_aggressive
