@@ -131,24 +131,6 @@ class ExperienceReplayWrapper(gym.Wrapper):
         obs, rewards, dones, infos = self.env.step(action)
 
         if any(dones):
-            not_in_replay_buffer_bool = not self.env.saved_in_replay_buffer
-            reached_goal_threshold_bool = self.env.replay_reached_goal_ratio >= 0.6
-            len_dist_to_goal_bool = len(self.env.replay_distance_to_goal[0]) > 0
-            len_episode_check_bool = len(self.episode_checkpoints) > 0
-            if not_in_replay_buffer_bool and reached_goal_threshold_bool and len_dist_to_goal_bool and len_episode_check_bool:
-                ctrl_freq = self.env.envs[0].control_freq
-                self.env.replay_distance_to_goal = np.array(self.env.replay_distance_to_goal)
-                dist_1s = ctrl_freq * np.mean(self.env.replay_distance_to_goal[:, int(-1 * ctrl_freq):])
-                if dist_1s >= self.env.replay_goal_reach_metric:
-                    steps_ago = min(self.max_episode_checkpoints_to_keep, len(self.episode_checkpoints))
-                    try:
-                        env, obs = self.episode_checkpoints[-steps_ago]
-                    except:
-                        log.info('len(self.episode_checkpoints): %s', str(len(self.episode_checkpoints)))
-                        env, obs = self.episode_checkpoints[-len(self.episode_checkpoints)]
-
-                    self.replay_buffer.write_cp_to_buffer(env, obs)
-
             obs = self.new_episode()
             for i in range(len(infos)):
                 if not infos[i]["episode_extra_stats"]:
@@ -172,16 +154,10 @@ class ExperienceReplayWrapper(gym.Wrapper):
             if self.env.use_obstacles:
                 collision_flag = collision_flag or len(self.env.curr_quad_col) > 0
 
-            no_sol_flag = False
-            if self.env.enable_sbc:
-                no_sol_flag = self.env.no_sol_flag
-
-            add_ent_flag = collision_flag or no_sol_flag
-
             grace_tick = self.env.collisions_grace_period_seconds * self.env.envs[0].control_freq
             out_grace_bool = self.env.envs[0].tick > grace_tick
-            out_add_gap_bool = self.env.envs[0].tick - self.last_tick_added_to_buffer > 2 * self.env.envs[0].control_freq
-            if add_ent_flag and enable_replay_buffer_bool and not_in_replay_buffer_bool and out_grace_bool and out_add_gap_bool:
+            out_add_gap_bool = self.env.envs[0].tick - self.last_tick_added_to_buffer > 5 * self.env.envs[0].control_freq
+            if collision_flag and enable_replay_buffer_bool and not_in_replay_buffer_bool and out_grace_bool and out_add_gap_bool:
                 # added this check to avoid adding a lot of collisions from the same episode to the buffer
                 steps_ago = int(self.save_time_before_collision_sec / self.replay_buffer.cp_step_size_sec)
                 steps_ago = min(steps_ago, len(self.episode_checkpoints))

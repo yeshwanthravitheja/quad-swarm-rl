@@ -35,7 +35,7 @@ GRAV = 9.81  # default gravitational constant
 # reasonable reward function for hovering at a goal and not flying too high
 def compute_reward_weighted(
         goal, cur_pos, rl_acc, acc_sbc, sbc_distance_to_boundary, mellinger_acc, dt, rew_coeff, on_floor, action_prev,
-        aggressive_unclip, enable_sbc, dynamics, cost_enable_extra, enable_thrust):
+        aggressive_unclip, enable_sbc, dynamics, cost_enable_extra, enable_thrust, no_sol_flag):
     # Distance to the goal
     dist = np.linalg.norm(goal - cur_pos)
     cost_pos_raw = dist
@@ -75,8 +75,8 @@ def compute_reward_weighted(
         cost_rl_sbc = 0.0
 
     # Difference between acc_rl & acc_mellinger
-    cost_rl_mellinger_raw = 0.0
-    cost_rl_mellinger = 0.0
+    cost_rl_mellinger_raw = np.linalg.norm(mellinger_acc - rl_acc)
+    cost_rl_mellinger = rew_coeff["rl_mellinger"] * cost_rl_mellinger_raw
 
     # Action change
     cost_act_change_raw = np.linalg.norm(action_prev - rl_acc)
@@ -122,6 +122,10 @@ def compute_reward_weighted(
         cost_extra_rl_real_raw = 0.
         cost_extra_rl_real = 0.
 
+    # SBC: no solution
+    cost_no_sol_raw = float(no_sol_flag)
+    cost_no_sol = rew_coeff["no_sol"] * cost_no_sol_raw
+
     reward = -dt * np.sum([
         cost_pos,
         cost_crash,
@@ -139,6 +143,8 @@ def compute_reward_weighted(
         cost_act_change,
         # Extra #5: cost_extra_rl_real
         cost_extra_rl_real,
+        # Extra #6: no solution
+        cost_no_sol,
     ])
 
     rew_info = {
@@ -159,6 +165,8 @@ def compute_reward_weighted(
         'rew_act_change': -cost_act_change,
         # Extra #5: cost_extra_rl_real
         'rew_extra_rl_real': -cost_extra_rl_real,
+        # Extra #6: no solution
+        'rew_no_sol': -cost_no_sol,
 
         "rewraw_main": -cost_pos_raw,
         'rewraw_pos': -cost_pos_raw,
@@ -177,6 +185,8 @@ def compute_reward_weighted(
         'rewraw_act_change': -cost_act_change_raw,
         # Extra #5: cost_extra_rl_real
         'rewraw_extra_rl_real': -cost_extra_rl_real_raw,
+        # Extra #6: no solution
+        'rewraw_no_sol': -cost_no_sol_raw,
     }
 
     for k, v in rew_info.items():
@@ -527,7 +537,7 @@ class QuadrotorSingle:
                 mellinger_acc=self.dynamics.acc, dt=self.control_dt,
                 rew_coeff=self.rew_coeff, on_floor=self.dynamics.on_floor,
                 action_prev=self.actions[1], aggressive_unclip=sbc_data['agg_unclip'], enable_sbc=self.enable_sbc,
-                dynamics=self.dynamics, cost_enable_extra=self.cost_enable_extra, enable_thrust=self.enable_thrust
+                dynamics=self.dynamics, cost_enable_extra=self.cost_enable_extra, enable_thrust=self.enable_thrust, no_sol_flag=no_sol_flag
             )
         else:
             reward, rew_info = compute_reward_weighted(
@@ -536,7 +546,7 @@ class QuadrotorSingle:
                 mellinger_acc=self.dynamics.acc, dt=self.control_dt,
                 rew_coeff=self.rew_coeff, on_floor=self.dynamics.on_floor,
                 action_prev=self.actions[1], aggressive_unclip=None, enable_sbc=self.enable_sbc,
-                dynamics=self.dynamics, cost_enable_extra=self.cost_enable_extra, enable_thrust=self.enable_thrust
+                dynamics=self.dynamics, cost_enable_extra=self.cost_enable_extra, enable_thrust=self.enable_thrust, no_sol_flag=False
             )
 
         self.tick += 1

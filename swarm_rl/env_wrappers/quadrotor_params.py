@@ -134,6 +134,8 @@ def add_quadrotors_env_args(env, parser):
                    help='enable cost for action, effort, and orientation')
     p.add_argument('--quads_cost_extra_rl_real', default=0.0, type=float,
                    help='cost coeff of the extra cost b/w acc_rl and acc_mellinger')
+    p.add_argument('--quads_cost_no_sol', default=0.0, type=float,
+                   help='cost coeff of the extra cost sbc does not have a solution')
 
     # # Reward annealing for: 1) quads_cost_rl_sbc 2) quads_cost_rl_mellinger
     p.add_argument('--quads_anneal_safe_start_steps', default=0.0, type=float, help='Start annealing')
