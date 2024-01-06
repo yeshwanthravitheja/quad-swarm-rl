@@ -286,7 +286,7 @@ class QuadrotorSingle:
 
         # Preset parameters
         self.obs_repr = obs_repr
-        self.actions = [np.zeros([4, ]), np.zeros([4, ])]
+        self.actions = [np.zeros([3, ]), np.zeros([3, ])]
         self.rew_coeff = None
         self.his_acc = his_acc
         self.his_acc_num = his_acc_num
@@ -515,8 +515,7 @@ class QuadrotorSingle:
             self.controller.step_func(dynamics=self.dynamics, action=action, dt=self.dt)
         else:
             _, acc_sbc, sbc_distance_to_boundary, no_sol_count, no_continuous_sol_count, modify_num, change_amount, no_sol_flag = (
-                self.controller.step_func(dynamics=self.dynamics, acc_des=action, dt=self.dt, observation=sbc_data))
-
+                self.controller.step_func(dynamics=self.dynamics, acc_des=action, dt=self.dt, observation=sbc_data, goal=self.goal))
 
         if self.his_acc:
             if self.enable_sbc:

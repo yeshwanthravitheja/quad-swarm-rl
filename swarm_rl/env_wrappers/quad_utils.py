@@ -43,6 +43,15 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
     rew_coeff = DEFAULT_QUAD_REWARD_SHAPING['quad_rewards']
     use_replay_buffer = cfg.replay_buffer_sample_prob > 0.0
 
+    # Obstacle parameters
+    dr_params = None
+    if cfg.quads_domain_random:
+        dr_params = {
+            'obst_density': np.arange(cfg.quads_obst_density_min, cfg.quads_obst_density_max, 0.2),
+            'obst_gap': np.arange(cfg.quads_obst_gap_min, cfg.quads_obst_gap_max, 0.1),
+        }
+
+
     env = QuadrotorEnvMulti(
         num_agents=cfg.quads_num_agents, ep_time=cfg.quads_episode_duration, rew_coeff=rew_coeff,
         obs_repr=cfg.quads_obs_repr, his_acc=cfg.quads_obs_acc_his, his_acc_num=cfg.quads_obs_acc_his_num,
@@ -82,7 +91,7 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
         sbc_max_obst_aggressive=cfg.quads_max_obst_aggressive,
         sbc_max_room_aggressive=cfg.quads_max_room_aggressive,
         # Log
-        experiment_name=cfg.experiment
+        experiment_name=cfg.experiment, dr_params=dr_params
     )
 
     if use_replay_buffer:

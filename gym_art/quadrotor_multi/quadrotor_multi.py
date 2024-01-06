@@ -46,11 +46,44 @@ class QuadrotorEnvMulti(gym.Env):
                  sbc_max_acc=1.0, sbc_max_neighbor_aggressive=5.0, sbc_max_obst_aggressive=5.0,
                  sbc_max_room_aggressive=1.0,
                  # Log
-                 experiment_name='default'
+                 experiment_name='default', dr_params=None
                  ):
         super().__init__()
 
         # Predefined Parameters
+        self.dr_params = dr_params
+        self.obst_density_list = dr_params['obst_density']
+        self.obst_gap_list = dr_params['obst_gap']
+        self.scenarios_name = ['o_random', 'o_static_same_goal']
+
+        # Creating the dictionary
+        self.metric_dict = {}
+
+        # Looping through each combination of density, gap, and scenario
+        for density in dr_params['obst_density']:
+            for gap in dr_params['obst_gap']:
+                for scenario in self.scenarios_name:
+                    # Constructing the key
+                    key = f'density_{np.round(density, decimals=2)}_gap_{np.round(gap, decimals=2)}_{scenario}'
+                    # Assigning an empty list as the value
+                    self.metric_dict[key] = {'success': [], 'col': [], 'neighbor_col': [], 'obst_col': [], 'deadlock': []}
+
+        self.count_metric_index = []
+        # Loop for the first dimension (0-3)
+        for i in range(len(dr_params['obst_density'])):
+            # Loop for the second dimension (0-2)
+            for j in range(len(dr_params['obst_gap'])):
+                # Loop for the third dimension (0-1)
+                for k in range(len(self.scenarios_name)):
+                    self.count_metric_index.append([i, j, k])
+        self.count_metric_index_counter = 0
+
+        self.key_list = list(self.metric_dict.keys())
+        self.metric_count = 0
+        self.scenario_index = 0
+        self.obst_density_index = 0
+        self.obst_gap_index = 0
+
         self.num_agents = num_agents
         self.enable_thrust = enable_thrust
         obs_self_size = QUADS_OBS_REPR[obs_repr]
@@ -437,14 +470,68 @@ class QuadrotorEnvMulti(gym.Env):
     def reset(self, dr_params=None, options=None):
         obs, rewards, dones, infos = [], [], [], []
 
-        if dr_params is not None:
-            self.obst_params.update(dr_params)
+        # self.item_name[item_name]['success'].append(agent_success_ratio)
+        # self.metric_dict[item_name]['col'].append(agent_col_ratio)
+        # self.metric_dict[item_name]['neighbor_col'].append(agent_neighbor_col_ratio)
+        # self.metric_dict[item_name]['obst_col'].append(agent_obst_col_ratio)
+        # self.metric_dict[item_name]['deadlock'].append(agent_deadlock_ratio)
+
+        if self.metric_count == 50:
+            self.count_metric_index_counter += 1
+            self.metric_count = 0
+            self.obst_density_index = self.count_metric_index[self.count_metric_index_counter][0]
+            self.obst_gap_index = self.count_metric_index[self.count_metric_index_counter][1]
+            self.scenario_index = self.count_metric_index[self.count_metric_index_counter][2]
+
+
+        self.obst_params = {
+            'obst_density': self.obst_density_list[self.obst_density_index],
+            'obst_gap': self.obst_gap_list[self.obst_gap_index]
+        }
+
+        item_name = ''
+        for key, val in self.obst_params.items():
+            item_name += str(key[5:]) + '_' + str(np.round(val, decimals=2)) + '_'
+
+        item_name += self.scenarios_name[self.scenario_index]
+
+        if self.metric_count % 5 == 0 and self.metric_count > 0:
+            print('self.metric_dict', self.metric_dict)
+            for density in self.dr_params['obst_density']:
+                for gap in self.dr_params['obst_gap']:
+                    for scenario in self.scenarios_name:
+                        # Constructing the key
+                        item_name = f'density_{np.round(density, decimals=2)}_gap_{np.round(gap, decimals=2)}_{scenario}'
+
+                        if len(self.metric_dict[item_name]['success']) == 0:
+                            continue
+                        print('==========================================================')
+                        print('item_name: ', item_name)
+                        print('self.metric_dict[item_name]: ', self.metric_dict[item_name])
+                        print('success mean: ', np.mean(self.metric_dict[item_name]['success']))
+                        print('success std: ', np.std(self.metric_dict[item_name]['success']))
+
+                        print('col mean: ', np.mean(self.metric_dict[item_name]['col']))
+                        print('col std: ', np.std(self.metric_dict[item_name]['col']))
+
+                        print('neighbor_col mean: ', np.mean(self.metric_dict[item_name]['neighbor_col']))
+                        print('neighbor_col std: ', np.std(self.metric_dict[item_name]['neighbor_col']))
+
+                        print('obst_col mean: ', np.mean(self.metric_dict[item_name]['obst_col']))
+                        print('obst_col std: ', np.std(self.metric_dict[item_name]['obst_col']))
+
+                        print('deadlock mean: ', np.mean(self.metric_dict[item_name]['deadlock']))
+                        print('deadlock std: ', np.std(self.metric_dict[item_name]['deadlock']))
+                        print('==========================================================')
+
+        # if dr_params is not None:
+        #     self.obst_params.update(dr_params)
 
         # Scenario reset
         if self.use_obstacles:
             self.obstacles = MultiObstacles(obstacle_size=self.obst_size, quad_radius=self.quad_arm)
             self.obst_map, self.obst_pos_arr, cell_centers = self.generate_obstacles()
-            self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers)
+            self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers, mode_index=self.scenario_index)
         else:
             self.scenario.reset()
 
@@ -532,18 +619,22 @@ class QuadrotorEnvMulti(gym.Env):
             self.sbc_modify_num = [0 for _ in range(self.num_agents)]
             self.sbc_change_amount = [[] for _ in range(self.num_agents)]
 
+        self.metric_count += 1
+
         return obs
 
     def step(self, actions):
         # The meaning of actions is acceleration change
-        actions = np.array(actions)
+        actions = np.array(actions[:, :3])
 
         if self.enable_sbc:
-            actions_aggressive_unclip = np.array(actions[:, 3:5])
-            actions_aggressive = np.clip(actions[:, 3:5], a_min=0.0, a_max=1.0)
+            agg_nei = 1.0
+            agg_obst = 1.0
+            actions_aggressive_unclip = [np.array([agg_nei, agg_obst]) for _ in range(self.num_agents)]
+            actions_aggressive = np.clip(actions_aggressive_unclip, a_min=0.0, a_max=1.0)
 
-            coeff_sbc_nei_max_agg = self.rew_coeff['sbc_nei_max_agg']
-            coeff_sbc_obst_max_agg = self.rew_coeff['sbc_obst_max_agg']
+            coeff_sbc_nei_max_agg = 1.0
+            coeff_sbc_obst_max_agg = 1.0
 
             sbc_neighbor_aggressive = self.sbc_max_neighbor_aggressive * actions_aggressive[:, 0] * coeff_sbc_nei_max_agg
             sbc_obst_aggressive = self.sbc_max_obst_aggressive * actions_aggressive[:, 1] * coeff_sbc_obst_max_agg
@@ -929,7 +1020,16 @@ class QuadrotorEnvMulti(gym.Env):
 
                 item_name = ''
                 for key, val in self.obst_params.items():
-                    item_name += str(key[5:]) + '_' + str(np.round(val, decimals=2)) + '-'
+                    item_name += str(key[5:]) + '_' + str(np.round(val, decimals=2)) + '_'
+
+                item_name += self.scenarios_name[self.scenario_index]
+                
+                # 'success': [], 'col': [], neighbor_col': [], 'obst_col': [], 'deadlock': []
+                self.metric_dict[item_name]['success'].append(agent_success_ratio)
+                self.metric_dict[item_name]['col'].append(agent_col_ratio)
+                self.metric_dict[item_name]['neighbor_col'].append(agent_neighbor_col_ratio)
+                self.metric_dict[item_name]['obst_col'].append(agent_obst_col_ratio)
+                self.metric_dict[item_name]['deadlock'].append(agent_deadlock_ratio)
 
                 for i in range(len(infos)):
                     # agent_success_rate
