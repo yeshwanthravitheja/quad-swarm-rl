@@ -78,9 +78,9 @@ class ReplayBuffer:
 
 
 class ExperienceReplayWrapper(gym.Wrapper):
-    def __init__(self, env, replay_buffer_sample_prob, init_obst_params, domain_random=False, dr_params=None):
+    def __init__(self, env, replay_buffer_sample_prob, init_obst_params, domain_random=False, dr_params=None, buffer_size=20):
         super().__init__(env)
-        self.replay_buffer = ReplayBuffer(control_frequency=env.envs[0].control_freq)
+        self.replay_buffer = ReplayBuffer(control_frequency=env.envs[0].control_freq, cp_step_size=0.5, buffer_size=buffer_size)
         self.replay_buffer_sample_prob = replay_buffer_sample_prob
 
         # Default parameters for obstacles, used when domain_random=False

@@ -98,7 +98,8 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
                 'obst_gap': np.arange(cfg.quads_obst_gap_min, cfg.quads_obst_gap_max, 0.05),
             }
 
-        env = ExperienceReplayWrapper(env, cfg.replay_buffer_sample_prob, obst_params, cfg.quads_domain_random, dr_params)
+        env = ExperienceReplayWrapper(env, cfg.replay_buffer_sample_prob, obst_params, cfg.quads_domain_random, dr_params,
+                                      buffer_size=cfg.quads_replay_buffer_size)
 
     reward_shaping = copy.deepcopy(DEFAULT_QUAD_REWARD_SHAPING)
 

@@ -106,6 +106,7 @@ def add_quadrotors_env_args(env, parser):
     p.add_argument('--replay_buffer_sample_prob', default=0.0, type=float,
                    help='Probability at which we sample from it rather than resetting the env. Set to 0.0 (default) '
                         'to disable the replay. Set to value in (0.0, 1.0] to use replay buffer')
+    p.add_argument('--quads_replay_buffer_size', default=20, type=int, help='Replay buffer size')
 
     # Annealing
     p.add_argument('--anneal_collision_steps', default=0.0, type=float,
