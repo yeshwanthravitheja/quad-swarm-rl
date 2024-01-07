@@ -517,7 +517,6 @@ class QuadrotorSingle:
             _, acc_sbc, sbc_distance_to_boundary, no_sol_count, no_continuous_sol_count, modify_num, change_amount, no_sol_flag = (
                 self.controller.step_func(dynamics=self.dynamics, acc_des=action, dt=self.dt, observation=sbc_data))
 
-
         if self.his_acc:
             if self.enable_sbc:
                 obs_single_acc = np.concatenate([action, acc_sbc, self.dynamics.acc,
@@ -540,10 +539,14 @@ class QuadrotorSingle:
                 dynamics=self.dynamics, cost_enable_extra=self.cost_enable_extra, enable_thrust=self.enable_thrust, no_sol_flag=no_sol_flag
             )
         else:
+            if self.enable_thrust:
+                mellinger_acc = np.array(action)
+            else:
+                mellinger_acc = np.array(self.dynamics.acc)
             reward, rew_info = compute_reward_weighted(
                 goal=self.goal, cur_pos=self.dynamics.pos, rl_acc=action,
                 acc_sbc=None, sbc_distance_to_boundary=None,
-                mellinger_acc=self.dynamics.acc, dt=self.control_dt,
+                mellinger_acc=mellinger_acc, dt=self.control_dt,
                 rew_coeff=self.rew_coeff, on_floor=self.dynamics.on_floor,
                 action_prev=self.actions[1], aggressive_unclip=None, enable_sbc=self.enable_sbc,
                 dynamics=self.dynamics, cost_enable_extra=self.cost_enable_extra, enable_thrust=self.enable_thrust, no_sol_flag=False
