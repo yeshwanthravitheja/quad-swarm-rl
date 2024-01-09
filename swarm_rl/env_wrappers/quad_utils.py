@@ -47,10 +47,9 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
     dr_params = None
     if cfg.quads_domain_random:
         dr_params = {
-            'obst_density': np.arange(cfg.quads_obst_density_min, cfg.quads_obst_density_max, 0.2),
-            'obst_gap': np.arange(cfg.quads_obst_gap_min, cfg.quads_obst_gap_max, 0.1),
+            'obst_density': np.arange(cfg.quads_obst_density_max, cfg.quads_obst_density_min, -0.2),
+            'obst_gap': np.arange(cfg.quads_obst_gap_max, cfg.quads_obst_gap_min, -0.05),
         }
-
 
     env = QuadrotorEnvMulti(
         num_agents=cfg.quads_num_agents, ep_time=cfg.quads_episode_duration, rew_coeff=rew_coeff,
@@ -103,8 +102,8 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
         dr_params = None
         if cfg.quads_domain_random:
             dr_params = {
-                'obst_density': np.arange(cfg.quads_obst_density_min, cfg.quads_obst_density_max, 0.2),
-                'obst_gap': np.arange(cfg.quads_obst_gap_min, cfg.quads_obst_gap_max, 0.1),
+                'obst_density': np.arange(cfg.quads_obst_density_max, cfg.quads_obst_density_min, -0.2),
+                'obst_gap': np.arange(cfg.quads_obst_gap_max, cfg.quads_obst_gap_min, -0.05),
             }
 
         env = ExperienceReplayWrapper(env, cfg.replay_buffer_sample_prob, obst_params, cfg.quads_domain_random, dr_params)

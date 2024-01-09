@@ -476,13 +476,12 @@ class QuadrotorEnvMulti(gym.Env):
         # self.metric_dict[item_name]['obst_col'].append(agent_obst_col_ratio)
         # self.metric_dict[item_name]['deadlock'].append(agent_deadlock_ratio)
 
-        if self.metric_count == 50:
+        if self.metric_count == 25:
             self.count_metric_index_counter += 1
             self.metric_count = 0
             self.obst_density_index = self.count_metric_index[self.count_metric_index_counter][0]
             self.obst_gap_index = self.count_metric_index[self.count_metric_index_counter][1]
             self.scenario_index = self.count_metric_index[self.count_metric_index_counter][2]
-
 
         self.obst_params = {
             'obst_density': self.obst_density_list[self.obst_density_index],
@@ -495,8 +494,9 @@ class QuadrotorEnvMulti(gym.Env):
 
         item_name += self.scenarios_name[self.scenario_index]
 
-        if self.metric_count % 5 == 0 and self.metric_count > 0:
+        if self.metric_count % 2 == 0 and self.metric_count > 0:
             print('self.metric_dict', self.metric_dict)
+            tmp_success_rate_list = []
             for density in self.dr_params['obst_density']:
                 for gap in self.dr_params['obst_gap']:
                     for scenario in self.scenarios_name:
@@ -523,6 +523,12 @@ class QuadrotorEnvMulti(gym.Env):
                         print('deadlock mean: ', np.mean(self.metric_dict[item_name]['deadlock']))
                         print('deadlock std: ', np.std(self.metric_dict[item_name]['deadlock']))
                         print('==========================================================')
+                        tmp_success_rate_list.append(np.mean(self.metric_dict[item_name]['success']))
+
+            print('++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+            print('overall success: ', np.mean(tmp_success_rate_list))
+            print('++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+
 
         # if dr_params is not None:
         #     self.obst_params.update(dr_params)

@@ -9,4 +9,4 @@ python -m swarm_rl.enjoy \
 --quads_anneal_safe_total_steps=0 --cbf_agg_anneal_steps=0 --quads_mode=mix --quads_render=False --no_render \
 --quads_domain_random=True --quads_obst_size=0.8 \
 --quads_obst_density_min=0.2 --quads_obst_density_max=0.8 --quads_obst_gap_min=0.09 --quads_obst_gap_max=0.2 \
---quads_max_neighbor_aggressive=1.0 --quads_max_obst_aggressive=1.0
+--quads_max_neighbor_aggressive=0.05 --quads_max_obst_aggressive=0.05
