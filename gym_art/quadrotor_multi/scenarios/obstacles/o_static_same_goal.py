@@ -45,7 +45,7 @@ class Scenario_o_static_same_goal(Scenario_o_base):
         else:
             for _ in range(10):
                 end_point, index, index_2d = self.generate_single_point()
-                if index not in self.index_list:
+                if index not in self.start_index_list:
                     break
 
         return end_point, index, index_2d
