@@ -5,7 +5,7 @@ from gym_art.quadrotor_multi.obstacles.utils import get_surround_sdfs, get_quad_
 
 
 class MultiObstacles:
-    def __init__(self, obstacle_size=1.0, quad_radius=0.046, room_dims=(10, 10, 10), num_obstacles=25):
+    def __init__(self, obstacle_size=1.0, quad_radius=0.046, room_dims=(10, 10, 10), obst_num=25):
         self.size = obstacle_size
         self.obstacle_radius = obstacle_size / 2.0
         self.quad_radius = quad_radius
@@ -16,7 +16,7 @@ class MultiObstacles:
 
         self.grid_size = 1.0
         self.grid_num_1d = int(room_dims[0] // self.grid_size)
-        self.obstacle_num = num_obstacles
+        self.obstacle_num = obst_num
         self.room_dims = room_dims
 
         # Fixed parameter
