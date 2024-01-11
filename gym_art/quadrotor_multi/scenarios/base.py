@@ -28,7 +28,7 @@ class QuadrotorScenario:
         self.interp = None
         # Aux variables used in scenarios with obstacles
         self.spawn_points = None
-        self.approch_goal_metric = 0.5
+        self.approach_goal_metric = 0.5
 
     def name(self):
         """
@@ -93,7 +93,7 @@ class QuadrotorScenario:
                 goals.append(goal)
 
             mean_pos = np.mean(goals, axis=0)
-            goals = goals - mean_pos + formation_center
+            goals = np.array(goals) - mean_pos + formation_center
         elif self.formation.startswith("cube"):
             dim_size = np.power(num_agents, 1.0 / 3)
             floor_dim_size = int(dim_size)
@@ -106,7 +106,7 @@ class QuadrotorScenario:
                 goals.append(goal)
 
             mean_pos = np.mean(goals, axis=0)
-            goals = goals - mean_pos + formation_center
+            goals = np.array(goals) - mean_pos + formation_center
         else:
             raise NotImplementedError("Unknown formation")
 

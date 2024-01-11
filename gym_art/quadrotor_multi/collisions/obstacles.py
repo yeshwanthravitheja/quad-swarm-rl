@@ -6,7 +6,7 @@ from gym_art.quadrotor_multi.collisions.utils import compute_new_vel, compute_ne
 
 
 @njit
-def compute_col_norm_and_new_vel_obst(pos, vel, obstacle_pos):
+def compute_col_norm_and_new_vel_obst_circle(pos, vel, obstacle_pos):
     collision_norm = pos - obstacle_pos
     # difference in z position is 0, given obstacle height is same as room height
     collision_norm[2] = 0.0
@@ -19,12 +19,32 @@ def compute_col_norm_and_new_vel_obst(pos, vel, obstacle_pos):
 
     return vnew, collision_norm
 
+@njit
+def compute_col_norm_and_new_vel_obst_grid(vel):
+    collision_norm = -1.0 * vel
+    # difference in z position is 0, given obstacle height is same as room height
+    collision_norm[2] = 0.0
+    coll_norm_mag = np.linalg.norm(collision_norm)
+    collision_norm = collision_norm / (coll_norm_mag + EPS if coll_norm_mag == 0.0 else coll_norm_mag)
 
-def perform_collision_with_obstacle(drone_dyn, obstacle_pos, obstacle_size):
+    # Get the components of the velocity vectors which are parallel to the collision.
+    # The perpendicular component remains the same.
+    vnew = np.dot(vel, collision_norm)
+
+    return vnew, collision_norm
+
+
+def perform_collision_with_obstacle(drone_dyn, obstacle_pos, obstacle_size, obstacle_shape):
     # Vel noise has two different random components,
     # One that preserves momentum in opposite directions
     # Second that does not preserve momentum
-    vnew, collision_norm = compute_col_norm_and_new_vel_obst(drone_dyn.pos, drone_dyn.vel, obstacle_pos)
+    if obstacle_shape == 'circle':
+        vnew, collision_norm = compute_col_norm_and_new_vel_obst_circle(drone_dyn.pos, drone_dyn.vel, obstacle_pos)
+    elif obstacle_shape == 'grid':
+        vnew, collision_norm = compute_col_norm_and_new_vel_obst_grid(drone_dyn.vel)
+    else:
+        raise NotImplementedError(f'Unknown obstacle shape: {obstacle_shape}')
+
     vel_magn = np.linalg.norm(drone_dyn.vel)
     new_vel = vel_magn * collision_norm
 
@@ -38,12 +58,22 @@ def perform_collision_with_obstacle(drone_dyn, obstacle_pos, obstacle_size):
 
     max_vel_magn = np.linalg.norm(drone_dyn.vel)
     # In case drone that is inside the obstacle
-    if np.linalg.norm(drone_dyn.pos - obstacle_pos) < obstacle_size / 2:
-        drone_dyn.vel = compute_new_vel(max_vel_magn=max_vel_magn, vel=drone_dyn.vel,
-                                        vel_shift=new_vel - drone_dyn.vel + vel_noise, low=1.0, high=1.0)
+    if obstacle_shape == 'circle':
+        if np.linalg.norm(drone_dyn.pos - obstacle_pos) < obstacle_size / 2:
+            drone_dyn.vel = compute_new_vel(max_vel_magn=max_vel_magn, vel=drone_dyn.vel,
+                                            vel_shift=new_vel - drone_dyn.vel + vel_noise, low=1.0, high=1.0)
+        else:
+            drone_dyn.vel = compute_new_vel(max_vel_magn=max_vel_magn, vel=drone_dyn.vel,
+                                            vel_shift=new_vel - drone_dyn.vel + vel_noise)
+    elif obstacle_shape == 'grid':
+        if abs(drone_dyn.pos[0] - obstacle_pos[0]) < obstacle_size / 2 and abs(drone_dyn.pos[1] - obstacle_pos[1]) < obstacle_size / 2:
+            drone_dyn.vel = compute_new_vel(max_vel_magn=max_vel_magn, vel=drone_dyn.vel,
+                                            vel_shift=new_vel - drone_dyn.vel + vel_noise, low=1.0, high=1.0)
+        else:
+            drone_dyn.vel = compute_new_vel(max_vel_magn=max_vel_magn, vel=drone_dyn.vel,
+                                            vel_shift=new_vel - drone_dyn.vel + vel_noise)
     else:
-        drone_dyn.vel = compute_new_vel(max_vel_magn=max_vel_magn, vel=drone_dyn.vel,
-                                        vel_shift=new_vel - drone_dyn.vel + vel_noise)
+        raise NotImplementedError(f'Unknown obstacle shape: {obstacle_shape}')
 
     # Random forces for omega
     new_omega = compute_new_omega(magn_scale=1.0)

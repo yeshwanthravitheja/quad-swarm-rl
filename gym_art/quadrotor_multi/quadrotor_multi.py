@@ -13,7 +13,7 @@ from gym_art.quadrotor_multi.collisions.quadrotors import calculate_collision_ma
     calculate_drone_proximity_penalties, perform_collision_between_drones
 from gym_art.quadrotor_multi.collisions.room import perform_collision_with_wall, perform_collision_with_ceiling
 from gym_art.quadrotor_multi.obstacles.obstacles import MultiObstacles
-from gym_art.quadrotor_multi.obstacles.utils import get_cell_centers
+from gym_art.quadrotor_multi.obstacles.utils import get_cell_centers, visualize_chunks
 from gym_art.quadrotor_multi.plots.log_info import log_list_data, log_data_v1, log_init_info, log_list_dict_data
 from gym_art.quadrotor_multi.quad_utils import QUADS_OBS_REPR, QUADS_NEIGHBOR_OBS_TYPE, OBS_SINGLE_HIS_ACC_DIM, \
     OBS_SINGLE_HIS_ACC_DIM_NO_SBC
@@ -442,9 +442,13 @@ class QuadrotorEnvMulti(gym.Env):
 
         # Scenario reset
         if self.use_obstacles:
-            self.obstacles = MultiObstacles(obstacle_size=self.obst_size, quad_radius=self.quad_arm)
-            self.obst_map, self.obst_pos_arr, cell_centers = self.generate_obstacles()
-            self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers)
+            self.obstacles = MultiObstacles(obstacle_size=self.obst_size, quad_radius=self.quad_arm,
+                                            room_dims=self.room_dims, obst_num=self.num_obstacles)
+            # self.obst_map, self.obst_pos_arr, cell_centers = self.generate_obstacles()
+            # self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers, free_space=None)
+            self.obst_map, self.obst_pos_arr, cell_centers, valid_free_space_list = self.obstacles.generate_obstacles_grid()
+            self.scenario.reset(obst_map=None, cell_centers=cell_centers, free_space=valid_free_space_list)
+            # visualize_chunks(grid=self.obst_map, chunks=self.obstacles.free_space_list, start=self.scenario.start_index_2d_list, end=self.scenario.end_index_2d_list)
         else:
             self.scenario.reset()
 
@@ -766,7 +770,7 @@ class QuadrotorEnvMulti(gym.Env):
 
             self.distance_to_goal[i].append(-infos[i]["rewards"]["rewraw_pos"])
             if len(self.distance_to_goal[i]) >= 5 and \
-                    np.mean(self.distance_to_goal[i][-5:]) / self.envs[0].dt < self.scenario.approch_goal_metric \
+                    np.mean(self.distance_to_goal[i][-5:]) / self.envs[0].dt < self.scenario.approach_goal_metric \
                     and not self.reached_goal[i]:
                 self.reached_goal[i] = True
 
@@ -801,7 +805,7 @@ class QuadrotorEnvMulti(gym.Env):
                         obstacle_pos = self.obstacles.pos_arr[int(obstacle_id)]
                         perform_collision_with_obstacle(
                             drone_dyn=self.envs[int(val)].dynamics, obstacle_pos=obstacle_pos,
-                            obstacle_size=self.obst_size)
+                            obstacle_size=self.obst_size, obstacle_shape=self.obstacles.obst_shape)
 
             # # 4) Room
             if len(wall_crash_list) > 0 or len(ceiling_crash_list) > 0:
@@ -860,7 +864,7 @@ class QuadrotorEnvMulti(gym.Env):
                 else:
                     self.distance_to_goal = np.array(self.distance_to_goal)
                     self.replay_distance_to_goal = np.array(self.distance_to_goal)
-                    self.replay_goal_reach_metric = self.scenario.approch_goal_metric
+                    self.replay_goal_reach_metric = self.scenario.approach_goal_metric
                     self.reached_goal = np.array(self.reached_goal)
                     infos[i]['episode_extra_stats'] = {
                         'num_collisions': self.collisions_per_episode,
@@ -1038,7 +1042,8 @@ class QuadrotorEnvMulti(gym.Env):
                 self.scenes[i].reset(
                     tuple(e.goal for e in self.envs),
                     self.all_dynamics(),
-                    self.obstacles, self.all_collisions)
+                    self.obstacles,
+                    self.all_collisions)
 
             self.reset_scene = False
 

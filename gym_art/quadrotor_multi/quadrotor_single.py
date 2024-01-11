@@ -599,8 +599,7 @@ class QuadrotorSingle:
 
         if self.box < 10:
             self.box = self.box * self.box_scale
-        x, y, z = self.np_random.uniform(-self.box,
-                                         self.box, size=(3,)) + self.spawn_point
+        x, y, z = self.np_random.uniform(-self.box, self.box, size=(3,)) + self.spawn_point
 
         if self.dim_mode == '1D':
             x, y = self.goal[0], self.goal[1]

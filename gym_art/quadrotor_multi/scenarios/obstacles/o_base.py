@@ -9,13 +9,12 @@ class Scenario_o_base(QuadrotorScenario):
         self.start_point = np.array([0.0, -3.0, 2.0])
         self.end_point = np.array([0.0, 3.0, 2.0])
         self.room_dims = room_dims
-        self.duration_step = 0
         self.quads_mode = quads_mode
-        self.obstacle_map = None
         self.free_space = []
-        self.approch_goal_metric = 1.0
-
+        self.approach_goal_metric = 1.0
+        self.obstacle_map = None
         self.spawn_points = None
+        self.cell_centers = None
 
     def generate_pos(self):
         half_room_length = self.room_dims[0] / 2
@@ -23,29 +22,16 @@ class Scenario_o_base(QuadrotorScenario):
 
         x = np.random.uniform(low=-1.0 * half_room_length + 2.0, high=half_room_length - 2.0)
         y = np.random.uniform(low=-1.0 * half_room_width + 2.0, high=half_room_width - 2.0)
-
         z = np.random.uniform(low=1.0, high=4.0)
 
         return np.array([x, y, z])
 
     def step(self):
-        tick = self.envs[0].tick
-
-        if tick <= self.duration_step:
-            return
-
-        self.duration_step += int(self.envs[0].ep_time * self.envs[0].control_freq)
-        self.goals = self.generate_goals(num_agents=self.num_agents, formation_center=self.end_point, layer_dist=0.0)
-
-        for i, env in enumerate(self.envs):
-            env.goal = self.goals[i]
-
         return
 
-    def reset(self, obst_map, cell_centers):
+    def reset(self, obst_map=None, cell_centers=None, free_space=None):
         self.start_point = self.generate_pos()
         self.end_point = self.generate_pos()
-        self.duration_step = int(np.random.uniform(low=2.0, high=4.0) * self.envs[0].control_freq)
         self.standard_reset(formation_center=self.start_point)
 
     def generate_pos_obst_map(self, check_surroundings=False):
@@ -58,26 +44,36 @@ class Scenario_o_base(QuadrotorScenario):
                 x, y = self.free_space[idx][0], self.free_space[idx][1]
                 surroundings_free = self.check_surroundings(x, y)
 
-        width = self.obstacle_map.shape[0]
-        index = x + (width * y)
+        if self.obstacle_map is None:
+            width = self.room_dims[0]
+        else:
+            width = self.obstacle_map.shape[0]
+        index = int(x + (width * y))
         pos_x, pos_y = self.cell_centers[index]
         z_list_start = np.random.uniform(low=0.75, high=3.0)
-        # xy_noise = np.random.uniform(low=-0.2, high=0.2, size=2)
         return np.array([pos_x, pos_y, z_list_start])
 
     def generate_pos_obst_map_2(self, num_agents):
-        ids = np.random.choice(range(len(self.free_space)), num_agents, replace=True)
-
         generated_points = []
+        index_list = []
+        index_2d_list = []
+
+        ids = np.random.choice(range(len(self.free_space)), num_agents, replace=True)
         for idx in ids:
             x, y = self.free_space[idx][0], self.free_space[idx][1]
-            width = self.obstacle_map.shape[0]
-            index = x + (width * y)
+            index_2d_list.append([x, y])
+            if self.obstacle_map is None:
+                width = self.room_dims[0]
+            else:
+                width = self.obstacle_map.shape[0]
+            index = int(x + (width * y))
             pos_x, pos_y = self.cell_centers[index]
             z_list_start = np.random.uniform(low=1.0, high=3.0)
+
+            index_list.append(index)
             generated_points.append(np.array([pos_x, pos_y, z_list_start]))
 
-        return np.array(generated_points)
+        return np.array(generated_points), index_list, index_2d_list
 
     def check_surroundings(self, row, col):
         length, width = self.obstacle_map.shape[0], self.obstacle_map.shape[1]

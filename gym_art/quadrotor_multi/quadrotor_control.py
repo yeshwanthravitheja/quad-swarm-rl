@@ -72,7 +72,7 @@ class NominalSBC:
                 rel_pos_norm_arr=obst_rel_pos_norm_arr, neighbor_des_num=obst_des_num)
 
             # # Obst min_rel_dist
-            obst_safety_distance = self.radius + obstacle_descriptions[0]['radius']
+            obst_safety_distance = self.radius + obstacle_descriptions[0]['radius'] * (2 ** 0.5)
             if min_rel_dist < obst_safety_distance:
                 return None, None
         else:
