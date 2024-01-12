@@ -414,9 +414,11 @@ class QuadrotorEnvMulti(gym.Env):
             obst_map[rid, cid] = 1
             x, y = cell_centers[rid + int(obst_area_length / grid_size) * cid]
             # Add some randomness to the x, y position
-            noise = min((grid_size - self.obst_size - self.obst_params['obst_gap']) / 2, 0)
-            noise = max(noise, 0)
-            x, y = (x, y) + np.random.uniform(low=-noise, high=noise, size=2)
+            if self.obst_params['obst_gap'] >= 0:
+                noise = min((grid_size - self.obst_size - self.obst_params['obst_gap']) / 2, 0)
+                noise = max(noise, 0)
+                x, y = (x, y) + np.random.uniform(low=-noise, high=noise, size=2)
+
             obst_item = list((x, y))
             obst_item.append(self.room_dims[2] / 2.)
             obst_pos_arr.append(obst_item)
