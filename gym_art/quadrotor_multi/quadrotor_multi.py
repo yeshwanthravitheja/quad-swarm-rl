@@ -46,9 +46,23 @@ class QuadrotorEnvMulti(gym.Env):
                  sbc_max_acc=1.0, sbc_max_neighbor_aggressive=5.0, sbc_max_obst_aggressive=5.0,
                  sbc_max_room_aggressive=1.0,
                  # Log
-                 experiment_name='default'
+                 experiment_name='default', sbc_only=False
                  ):
         super().__init__()
+        # Parameters for SBC only
+        self.sbc_only = sbc_only
+        self.sbc_only_scenario_index = -1
+        if self.sbc_only:
+            self.scenarios_name = ['o_random', 'o_static_same_goal']
+            self.sbc_only_metric_dict = {}
+            for scenario in self.scenarios_name:
+                # Constructing the key
+                key = f'density_{np.round(obst_density, decimals=2)}_{scenario}'
+                # Assigning an empty list as the value
+                self.sbc_only_metric_dict[key] = {'success': [], 'col': [], 'neighbor_col': [], 'obst_col': [], 'deadlock': []}
+
+            self.sbc_only_metric_count = 0
+            self.sbc_only_scenario_index = 0
 
         # Predefined Parameters
         self.num_agents = num_agents
@@ -99,7 +113,8 @@ class QuadrotorEnvMulti(gym.Env):
                 # Obstacle
                 use_obstacles=use_obstacles, num_obstacles=tmp_num_obstacles,
                 # SBC specific,
-                enable_sbc=enable_sbc, enable_thrust=enable_thrust, sbc_radius=sbc_radius, sbc_max_acc=sbc_max_acc
+                enable_sbc=enable_sbc, enable_thrust=enable_thrust, sbc_radius=sbc_radius, sbc_max_acc=sbc_max_acc,
+                sbc_only=sbc_only
             )
             self.envs.append(e)
 
@@ -435,6 +450,10 @@ class QuadrotorEnvMulti(gym.Env):
                     num_obstacles=self.num_obstacles, scene_index=i))
 
     def reset(self, dr_params=None, options=None):
+        if self.sbc_only:
+            self.log_sbc_only_metric()
+            self.sbc_only_metric_count += 1
+
         obs, rewards, dones, infos = [], [], [], []
 
         if dr_params is not None:
@@ -447,10 +466,10 @@ class QuadrotorEnvMulti(gym.Env):
             # self.obst_map, self.obst_pos_arr, cell_centers = self.generate_obstacles()
             # self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers, free_space=None)
             self.obst_map, self.obst_pos_arr, cell_centers, valid_free_space_list = self.obstacles.generate_obstacles_grid()
-            self.scenario.reset(obst_map=None, cell_centers=cell_centers, free_space=valid_free_space_list)
+            self.scenario.reset(obst_map=None, cell_centers=cell_centers, free_space=valid_free_space_list, sbc_only_index=self.sbc_only_scenario_index)
             # visualize_chunks(grid=self.obst_map, chunks=self.obstacles.free_space_list, start=self.scenario.start_index_2d_list, end=self.scenario.end_index_2d_list)
         else:
-            self.scenario.reset()
+            self.scenario.reset(sbc_only_index=self.sbc_only_scenario_index)
 
         # Replay buffer
         if self.use_replay_buffer and not self.activate_replay_buffer:
@@ -546,8 +565,12 @@ class QuadrotorEnvMulti(gym.Env):
             actions_aggressive_unclip = np.array(actions[:, 3:5])
             actions_aggressive = np.clip(actions[:, 3:5], a_min=0.0, a_max=1.0)
 
-            coeff_sbc_nei_max_agg = self.rew_coeff['sbc_nei_max_agg']
-            coeff_sbc_obst_max_agg = self.rew_coeff['sbc_obst_max_agg']
+            if self.sbc_only:
+                coeff_sbc_nei_max_agg = 1.0
+                coeff_sbc_obst_max_agg = 1.0
+            else:
+                coeff_sbc_nei_max_agg = self.rew_coeff['sbc_nei_max_agg']
+                coeff_sbc_obst_max_agg = self.rew_coeff['sbc_obst_max_agg']
 
             sbc_neighbor_aggressive = self.sbc_max_neighbor_aggressive * actions_aggressive[:, 0] * coeff_sbc_nei_max_agg
             sbc_obst_aggressive = self.sbc_max_obst_aggressive * actions_aggressive[:, 1] * coeff_sbc_obst_max_agg
@@ -934,6 +957,14 @@ class QuadrotorEnvMulti(gym.Env):
                 item_name = ''
                 for key, val in self.obst_params.items():
                     item_name += str(key[5:]) + '_' + str(np.round(val, decimals=2)) + '-'
+                if self.sbc_only:
+                    sbc_only_item_name = f'density_{np.round(self.obst_density, decimals=2)}_{self.scenarios_name[self.sbc_only_scenario_index]}'
+                    # 'success': [], 'col': [], neighbor_col': [], 'obst_col': [], 'deadlock': []
+                    self.sbc_only_metric_dict[sbc_only_item_name]['success'].append(agent_success_ratio)
+                    self.sbc_only_metric_dict[sbc_only_item_name]['col'].append(agent_col_ratio)
+                    self.sbc_only_metric_dict[sbc_only_item_name]['neighbor_col'].append(agent_neighbor_col_ratio)
+                    self.sbc_only_metric_dict[sbc_only_item_name]['obst_col'].append(agent_obst_col_ratio)
+                    self.sbc_only_metric_dict[sbc_only_item_name]['deadlock'].append(agent_deadlock_ratio)
 
                 for i in range(len(infos)):
                     # agent_success_rate
@@ -1251,3 +1282,37 @@ class QuadrotorEnvMulti(gym.Env):
         # Record goal pos
         file_name = os.path.join(folder_path, 'init_goal_' + str_counter + '.csv')
         log_init_info(filename=file_name, data=self.scenario.goals)
+
+    def log_sbc_only_metric(self):
+        if self.sbc_only_metric_count == 25:
+            self.sbc_only_metric_count = 0
+            self.sbc_only_scenario_index = (self.sbc_only_scenario_index + 1) % len(self.scenarios_name)
+
+        if self.sbc_only_metric_count % 2 == 0 and self.sbc_only_metric_count > 0:
+            print('self.sbc_only_metric_dict', self.sbc_only_metric_dict)
+            for scenario in self.scenarios_name:
+                # Constructing the key
+                item_name = f'density_{np.round(self.obst_density, decimals=2)}_{scenario}'
+
+                if len(self.sbc_only_metric_dict[item_name]['success']) == 0:
+                    continue
+
+                print('==========================================================')
+                print('item_name: ', item_name)
+                print('self.metric_dict[item_name]: ', self.sbc_only_metric_dict[item_name])
+                print('success mean: ', np.mean(self.sbc_only_metric_dict[item_name]['success']))
+                print('success std: ', np.std(self.sbc_only_metric_dict[item_name]['success']))
+
+                print('col mean: ', np.mean(self.sbc_only_metric_dict[item_name]['col']))
+                print('col std: ', np.std(self.sbc_only_metric_dict[item_name]['col']))
+
+                print('neighbor_col mean: ', np.mean(self.sbc_only_metric_dict[item_name]['neighbor_col']))
+                print('neighbor_col std: ', np.std(self.sbc_only_metric_dict[item_name]['neighbor_col']))
+
+                print('obst_col mean: ', np.mean(self.sbc_only_metric_dict[item_name]['obst_col']))
+                print('obst_col std: ', np.std(self.sbc_only_metric_dict[item_name]['obst_col']))
+
+                print('deadlock mean: ', np.mean(self.sbc_only_metric_dict[item_name]['deadlock']))
+                print('deadlock std: ', np.std(self.sbc_only_metric_dict[item_name]['deadlock']))
+                print('==========================================================')
+

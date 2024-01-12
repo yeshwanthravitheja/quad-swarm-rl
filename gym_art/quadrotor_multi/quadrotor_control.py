@@ -227,19 +227,20 @@ def quadrotor_jacobian(dynamics):
 
 class MellingerController(object):
     # @profile
-    def __init__(self, dynamics, sbc_radius, room_box, num_agents, num_obstacles, sbc_max_acc, enable_sbc):
+    def __init__(self, dynamics, sbc_radius, room_box, num_agents, num_obstacles, sbc_max_acc, enable_sbc, sbc_only):
         jacobian = quadrotor_jacobian(dynamics)
         self.Jinv = np.linalg.inv(jacobian)
         self.action = None
 
-        # self.kp_p, self.kd_p = 4.5, 3.5
+        self.kp_p, self.kd_p = 4.5, 3.5
         self.kp_a, self.kd_a = 200.0, 50.0
 
         self.rot_des = np.eye(3)
 
         self.enable_sbc = enable_sbc
+        self.sbc_only = sbc_only
         # maximum_linf_acceleration, max_acc in any dimension
-        if enable_sbc:
+        if self.enable_sbc:
             self.sbc = NominalSBC(maximum_linf_acceleration=sbc_max_acc, radius=sbc_radius, room_box=room_box,
                                   num_agents=num_agents, num_obstacles=num_obstacles)
             self.sbc_last_safe_acc = None
@@ -248,10 +249,15 @@ class MellingerController(object):
 
         self.no_sol_flag = False
 
-    def step(self, dynamics, acc_des, dt, observation=None):
+    def step(self, dynamics, acc_des, dt, observation=None, goal=None):
+        if self.sbc_only:
+            to_goal = goal - dynamics.pos
+            e_p = -clamp_norm(to_goal, 4.0)
+            e_v = dynamics.vel
+            acc_des = -self.kp_p * e_p - self.kd_p * e_v
+
         # Preset
-        acc_rl = np.array(acc_des)
-        acc_for_control = np.array(acc_des)
+        acc_des = np.array(acc_des)
         sbc_distance_to_boundary = None
         if self.enable_sbc:
             no_sol_count = observation['no_sol']
@@ -269,7 +275,7 @@ class MellingerController(object):
                 self_state=observation["self_state"],
                 neighbor_descriptions=observation["neighbor_descriptions"],
                 obstacle_descriptions=observation["obstacle_descriptions"],
-                desired_acceleration=acc_rl,
+                desired_acceleration=acc_des,
                 sbc_neighbor_aggressive=observation["sbc_neighbor_aggressive"],
                 sbc_obst_aggressive=observation["sbc_obst_aggressive"],
                 sbc_room_aggressive=observation["sbc_room_aggressive"]
@@ -280,7 +286,10 @@ class MellingerController(object):
                 acc_for_control = np.array(new_acc)
                 self.no_sol_flag = False
             else:
-                acc_for_control = np.array(acc_rl)
+                if self.sbc_only:
+                    acc_for_control = np.array(self.sbc_last_safe_acc)
+                else:
+                    acc_for_control = np.array(acc_des)
                 no_sol_count += 1
                 self.no_sol_flag = True
 
@@ -290,9 +299,9 @@ class MellingerController(object):
         else:
             acc_for_control = np.array(acc_des)
 
-        if not np.allclose(a=acc_for_control, b=acc_rl, rtol=1e-3, atol=1e-3):
+        if not np.allclose(a=acc_for_control, b=acc_des, rtol=1e-3, atol=1e-3):
             modify_num += 1
-            change_amount.append(np.linalg.norm(acc_rl - acc_for_control))
+            change_amount.append(np.linalg.norm(acc_des - acc_for_control))
 
         # Question: Why do we need to do this???
         acc_for_control_without_grav = np.array(acc_for_control)

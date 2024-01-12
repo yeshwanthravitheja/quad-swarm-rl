@@ -82,7 +82,7 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
         sbc_max_obst_aggressive=cfg.quads_max_obst_aggressive,
         sbc_max_room_aggressive=cfg.quads_max_room_aggressive,
         # Log
-        experiment_name=cfg.experiment
+        experiment_name=cfg.experiment, sbc_only=cfg.quads_sbc_only
     )
 
     if use_replay_buffer:

@@ -29,7 +29,7 @@ class Scenario_o_base(QuadrotorScenario):
     def step(self):
         return
 
-    def reset(self, obst_map=None, cell_centers=None, free_space=None):
+    def reset(self, obst_map=None, cell_centers=None, free_space=None, sbc_only_index=-1):
         self.start_point = self.generate_pos()
         self.end_point = self.generate_pos()
         self.standard_reset(formation_center=self.start_point)

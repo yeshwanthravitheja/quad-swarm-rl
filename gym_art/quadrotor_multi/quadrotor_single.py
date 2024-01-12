@@ -215,7 +215,7 @@ class QuadrotorSingle:
             # Obstacle
             use_obstacles=False, num_obstacles=0,
             # SBC specific,
-            enable_sbc=True, enable_thrust=False, sbc_radius=0.1, sbc_max_acc=2.0,
+            enable_sbc=True, enable_thrust=False, sbc_radius=0.1, sbc_max_acc=2.0, sbc_only=False,
             # Others
             dim_mode='3D', tf_control=False, sim_freq=200., sim_steps=2, verbose=False, gravity=GRAV, t2w_std=0.005,
             t2t_std=0.0005, excite=False, dynamics_simplification=False):
@@ -255,6 +255,7 @@ class QuadrotorSingle:
         # Preset
         self.cost_enable_extra = cost_enable_extra
         self.enable_thrust = enable_thrust
+        self.sbc_only = sbc_only
         # Numba Speed Up
         self.use_numba = use_numba
         # Neighbor info
@@ -286,7 +287,7 @@ class QuadrotorSingle:
 
         # Preset parameters
         self.obs_repr = obs_repr
-        self.actions = [np.zeros([4, ]), np.zeros([4, ])]
+        self.actions = [np.zeros([3, ]), np.zeros([3, ])]
         self.rew_coeff = None
         self.his_acc = his_acc
         self.his_acc_num = his_acc_num
@@ -405,7 +406,7 @@ class QuadrotorSingle:
             self.controller = MellingerController(
                 dynamics=self.dynamics, sbc_radius=self.sbc_radius,
                 room_box=self.room_box, num_agents=self.num_agents, num_obstacles=self.num_obstacles,
-                sbc_max_acc=self.sbc_max_acc, enable_sbc=self.enable_sbc)
+                sbc_max_acc=self.sbc_max_acc, enable_sbc=self.enable_sbc, sbc_only=self.sbc_only)
 
         # ACTIONS
         if self.enable_thrust:
@@ -515,7 +516,8 @@ class QuadrotorSingle:
             self.controller.step_func(dynamics=self.dynamics, action=action, dt=self.dt)
         else:
             _, acc_sbc, sbc_distance_to_boundary, no_sol_count, no_continuous_sol_count, modify_num, change_amount, no_sol_flag = (
-                self.controller.step_func(dynamics=self.dynamics, acc_des=action, dt=self.dt, observation=sbc_data))
+                self.controller.step_func(dynamics=self.dynamics, acc_des=action, dt=self.dt, observation=sbc_data,
+                                          goal=self.goal))
 
         if self.his_acc:
             if self.enable_sbc:

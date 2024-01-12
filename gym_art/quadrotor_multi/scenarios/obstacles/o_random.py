@@ -17,7 +17,7 @@ class Scenario_o_random(Scenario_o_base):
     def step(self):
         return
 
-    def reset(self, obst_map=None, cell_centers=None, free_space=None):
+    def reset(self, obst_map=None, cell_centers=None, free_space=None, sbc_only_index=-1):
         if obst_map is not None:
             self.obstacle_map = obst_map
             obst_map_locs = np.where(self.obstacle_map == 0)
