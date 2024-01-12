@@ -12,7 +12,7 @@ OBSTACLE_MODEL_CLI = QUAD_BASELINE_CLI_8 + (
     # Self
     ' --quads_num_agents=32 --num_workers=18 --num_envs_per_worker=2 --quads_obs_repr=xyz_vxyz_R_omega_floor '
     '--quads_obs_acc_his=False --quads_cost_enable_extra=False --train_for_env_steps=2000000000 '
-    '--quads_episode_duration=15.0'
+    '--quads_episode_duration=15.0 '
     # Obstacle
     '--quads_obst_density=0.8 --quads_obst_gap=-1 '
     # Cost
