@@ -293,9 +293,9 @@ class MellingerController(object):
         else:
             acc_for_control = np.array(acc_des)
 
-        if not np.allclose(a=acc_for_control, b=acc_des, rtol=1e-3, atol=1e-3):
-            modify_num += 1
-            change_amount.append(np.linalg.norm(acc_des - acc_for_control))
+        # if not np.allclose(a=acc_for_control, b=acc_des, rtol=1e-3, atol=1e-3):
+        #     modify_num += 1
+        #     change_amount.append(np.linalg.norm(acc_des - acc_for_control))
 
         # Question: Why do we need to do this???
         acc_for_control_without_grav = np.array(acc_for_control)

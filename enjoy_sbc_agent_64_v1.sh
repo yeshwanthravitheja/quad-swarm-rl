@@ -4,8 +4,8 @@ python -m swarm_rl.enjoy \
 --replay_buffer_sample_prob=0 \
 --quads_use_numba=True \
 --train_dir=/home/zhehui/tmp/quad-swarm-rl/train_dir \
---experiment=hybrid_os_08_search_num_agents_slurm/00_hybrid_os_08_search_num_agents_see_0_q.n.age_8 \
+--experiment=hybrid_os_08_search_num_agents_slurm/02_hybrid_os_08_search_num_agents_see_0_q.n.age_64 \
 --quads_episode_duration=15.0 --quads_view_mode=global --anneal_collision_steps=0 --quads_anneal_safe_start_steps=0 \
 --quads_anneal_safe_total_steps=0 --cbf_agg_anneal_steps=0 --quads_render=False --no_render \
 --quads_domain_random=False --quads_obst_size=0.8 --quads_mode=mix \
---quads_max_neighbor_aggressive=0.5 --quads_max_obst_aggressive=0.5
+--quads_max_neighbor_aggressive=0.2 --quads_max_obst_aggressive=0.2

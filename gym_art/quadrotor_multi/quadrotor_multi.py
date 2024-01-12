@@ -51,10 +51,14 @@ class QuadrotorEnvMulti(gym.Env):
         super().__init__()
 
         # Predefined Parameters
+        dr_params = {
+            'obst_density': [obst_density],
+            'obst_gap': [obst_gap],
+        }
         self.dr_params = dr_params
-        self.obst_density_list = dr_params['obst_density']
-        self.obst_gap_list = dr_params['obst_gap']
-        self.scenarios_name = ['o_random', 'o_static_same_goal']
+        self.obst_density_list = [obst_density]
+        self.obst_gap_list = [obst_gap]
+        self.scenarios_name = ['o_static_same_goal']
 
         # Creating the dictionary
         self.metric_dict = {}
