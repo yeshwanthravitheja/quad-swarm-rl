@@ -21,7 +21,7 @@ OBSTACLE_MODEL_CLI = QUAD_BASELINE_CLI_8 + (
     '--quads_cost_act_change=0.0 --quads_cost_no_sol=0.0 --quads_cost_cbf_agg=0.0 '
     # SBC
     '--quads_enable_sbc=True --quads_sbc_radius=0.05 --quads_max_acc=4.0 --quads_max_room_aggressive=0.2 '
-    '--quads_neighbor_range=3.0 --quads_obst_range=3.0 --quads_max_neighbor_aggressive=0.2 '
+    '--quads_neighbor_range=2.0 --quads_obst_range=2.0 --quads_max_neighbor_aggressive=0.2 '
     '--quads_max_obst_aggressive=0.2 '
     # Domain Randomization
     '--quads_domain_random=False --quads_obst_density_min=0.2 --quads_obst_density_max=0.8 '
