@@ -143,7 +143,8 @@ def add_quadrotors_env_args(env, parser):
     p.add_argument('--quads_anneal_safe_total_steps', default=0.0, type=float, help='Total annealing steps')
 
     # Enable sbc
-    p.add_argument('--quads_enable_sbc', default=True, type=str2bool, help='Whether to use sbc or not ')
+    p.add_argument('--quads_enable_sbc', default=True, type=str2bool, help='Whether to use sbc or not')
+    p.add_argument('--quads_output_agg', default=False, type=str2bool, help='Whether RL output aggressiveness')
     p.add_argument('--quads_enable_thrust', default=False, type=str2bool, help='Whether to use thrust or not')
 
     # # CBF aggressiveness annealing for:

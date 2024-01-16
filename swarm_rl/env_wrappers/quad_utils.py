@@ -80,7 +80,7 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
         sbc_max_acc=cfg.quads_max_acc,
         sbc_max_neighbor_aggressive=cfg.quads_max_neighbor_aggressive,
         sbc_max_obst_aggressive=cfg.quads_max_obst_aggressive,
-        sbc_max_room_aggressive=cfg.quads_max_room_aggressive,
+        sbc_max_room_aggressive=cfg.quads_max_room_aggressive, output_agg=cfg.quads_output_agg,
         # Log
         experiment_name=cfg.experiment
     )

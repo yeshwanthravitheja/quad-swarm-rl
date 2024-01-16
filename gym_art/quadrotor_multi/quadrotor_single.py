@@ -215,7 +215,7 @@ class QuadrotorSingle:
             # Obstacle
             use_obstacles=False, num_obstacles=0,
             # SBC specific,
-            enable_sbc=True, enable_thrust=False, sbc_radius=0.1, sbc_max_acc=2.0,
+            enable_sbc=True, enable_thrust=False, sbc_radius=0.1, sbc_max_acc=2.0, output_agg=False,
             # Others
             dim_mode='3D', tf_control=False, sim_freq=200., sim_steps=2, verbose=False, gravity=GRAV, t2w_std=0.005,
             t2t_std=0.0005, excite=False, dynamics_simplification=False):
@@ -267,6 +267,7 @@ class QuadrotorSingle:
 
         # # SBC specific
         self.enable_sbc = enable_sbc
+        self.output_agg = output_agg
         if enable_sbc:
             self.sbc_radius = sbc_radius
             self.sbc_max_acc = sbc_max_acc
@@ -412,8 +413,12 @@ class QuadrotorSingle:
             self.action_space = self.controller.action_space(self.dynamics)
         else:
             if self.enable_sbc:
-                action_lows_space = np.array([-1, -1, -1, 0, 0], dtype=np.float32)
-                action_high_space = np.array([1, 1, 1, 1, 1], dtype=np.float32)
+                if self.output_agg:
+                    action_lows_space = np.array([-1, -1, -1, 0, 0], dtype=np.float32)
+                    action_high_space = np.array([1, 1, 1, 1, 1], dtype=np.float32)
+                else:
+                    action_lows_space = np.array([-1, -1, -1], dtype=np.float32)
+                    action_high_space = np.array([1, 1, 1], dtype=np.float32)
             else:
                 action_lows_space = np.array([-1, -1, -1], dtype=np.float32)
                 action_high_space = np.array([1, 1, 1], dtype=np.float32)
@@ -463,7 +468,10 @@ class QuadrotorSingle:
         obs_comps = self.obs_repr.split("_")
         if self.his_acc:
             if self.enable_sbc:
-                obs_comps = obs_comps + (['acc'] * 3 + ['agg'] * 2) * self.his_acc_num
+                if self.output_agg:
+                    obs_comps = obs_comps + (['acc'] * 3 + ['agg'] * 2) * self.his_acc_num
+                else:
+                    obs_comps = obs_comps + (['acc'] * 2) * self.his_acc_num
             else:
                 obs_comps = obs_comps + (['acc'] * 2) * self.his_acc_num
 
@@ -519,10 +527,13 @@ class QuadrotorSingle:
 
         if self.his_acc:
             if self.enable_sbc:
-                obs_single_acc = np.concatenate([action, acc_sbc, self.dynamics.acc,
-                                                 np.array([sbc_data['sbc_neighbor_aggressive']]),
-                                                 np.array([sbc_data['sbc_obst_aggressive']])
-                                                 ])
+                if self.output_agg:
+                    obs_single_acc = np.concatenate([action, acc_sbc, self.dynamics.acc,
+                                                     np.array([sbc_data['sbc_neighbor_aggressive']]),
+                                                     np.array([sbc_data['sbc_obst_aggressive']])
+                                                     ])
+                else:
+                    obs_single_acc = np.concatenate([action, acc_sbc, self.dynamics.acc])
                 self.obs_his_accs.append(obs_single_acc)
             else:
                 obs_single_acc = np.concatenate([action, self.dynamics.acc])

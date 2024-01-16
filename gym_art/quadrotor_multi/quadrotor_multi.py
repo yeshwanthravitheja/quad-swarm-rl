@@ -44,7 +44,7 @@ class QuadrotorEnvMulti(gym.Env):
                  # SBC specific
                  enable_sbc=True, enable_thrust=False, sbc_radius=0.1, sbc_nei_range=5.0, sbc_obst_range=3.5,
                  sbc_max_acc=1.0, sbc_max_neighbor_aggressive=5.0, sbc_max_obst_aggressive=5.0,
-                 sbc_max_room_aggressive=1.0,
+                 sbc_max_room_aggressive=1.0, output_agg=False,
                  # Log
                  experiment_name='default'
                  ):
@@ -99,7 +99,8 @@ class QuadrotorEnvMulti(gym.Env):
                 # Obstacle
                 use_obstacles=use_obstacles, num_obstacles=tmp_num_obstacles,
                 # SBC specific,
-                enable_sbc=enable_sbc, enable_thrust=enable_thrust, sbc_radius=sbc_radius, sbc_max_acc=sbc_max_acc
+                enable_sbc=enable_sbc, enable_thrust=enable_thrust, sbc_radius=sbc_radius, sbc_max_acc=sbc_max_acc,
+                output_agg=output_agg
             )
             self.envs.append(e)
 
@@ -251,6 +252,7 @@ class QuadrotorEnvMulti(gym.Env):
 
         # Controller: SBC
         self.enable_sbc = enable_sbc
+        self.output_agg = output_agg
         self.no_sol_flag = False
         if enable_sbc:
             self.sbc_nei_range = sbc_nei_range
@@ -541,15 +543,20 @@ class QuadrotorEnvMulti(gym.Env):
         actions = np.array(actions)
 
         if self.enable_sbc:
-            actions_aggressive_unclip = np.array(actions[:, 3:5])
-            actions_aggressive = np.clip(actions[:, 3:5], a_min=0.0, a_max=1.0)
+            if self.output_agg:
+                actions_aggressive_unclip = np.array(actions[:, 3:5])
+                actions_aggressive = np.clip(actions[:, 3:5], a_min=0.0, a_max=1.0)
+                coeff_sbc_nei_max_agg = self.rew_coeff['sbc_nei_max_agg']
+                coeff_sbc_obst_max_agg = self.rew_coeff['sbc_obst_max_agg']
 
-            coeff_sbc_nei_max_agg = self.rew_coeff['sbc_nei_max_agg']
-            coeff_sbc_obst_max_agg = self.rew_coeff['sbc_obst_max_agg']
-
-            sbc_neighbor_aggressive = self.sbc_max_neighbor_aggressive * actions_aggressive[:, 0] * coeff_sbc_nei_max_agg
-            sbc_obst_aggressive = self.sbc_max_obst_aggressive * actions_aggressive[:, 1] * coeff_sbc_obst_max_agg
-            sbc_room_aggressive = self.sbc_max_room_aggressive
+                sbc_neighbor_aggressive = self.sbc_max_neighbor_aggressive * actions_aggressive[:, 0] * coeff_sbc_nei_max_agg
+                sbc_obst_aggressive = self.sbc_max_obst_aggressive * actions_aggressive[:, 1] * coeff_sbc_obst_max_agg
+                sbc_room_aggressive = self.sbc_max_room_aggressive
+            else:
+                actions_aggressive_unclip = np.zeros((self.num_agents, 2))
+                sbc_neighbor_aggressive = self.sbc_max_neighbor_aggressive * np.ones(self.num_agents)
+                sbc_obst_aggressive = self.sbc_max_obst_aggressive * np.ones(self.num_agents)
+                sbc_room_aggressive = self.sbc_max_room_aggressive
 
         obs, rewards, dones, infos = [], [], [], []
 
