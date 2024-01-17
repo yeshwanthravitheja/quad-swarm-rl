@@ -59,7 +59,10 @@ class QuadrotorEnvMulti(gym.Env):
                 # Constructing the key
                 key = f'density_{np.round(obst_density, decimals=2)}_{scenario}'
                 # Assigning an empty list as the value
-                self.sbc_only_metric_dict[key] = {'success': [], 'col': [], 'neighbor_col': [], 'obst_col': [], 'deadlock': []}
+                self.sbc_only_metric_dict[key] = {
+                    'success': [], 'col': [], 'neighbor_col': [], 'obst_col': [], 'deadlock': [],
+                    'dist_to_goal': []
+                }
 
             self.sbc_only_metric_count = 0
             self.sbc_only_scenario_index = 0
@@ -571,9 +574,9 @@ class QuadrotorEnvMulti(gym.Env):
             else:
                 coeff_sbc_nei_max_agg = self.rew_coeff['sbc_nei_max_agg']
                 coeff_sbc_obst_max_agg = self.rew_coeff['sbc_obst_max_agg']
-
                 sbc_neighbor_aggressive = self.sbc_max_neighbor_aggressive * actions_aggressive[:, 0] * coeff_sbc_nei_max_agg
                 sbc_obst_aggressive = self.sbc_max_obst_aggressive * actions_aggressive[:, 1] * coeff_sbc_obst_max_agg
+
             sbc_room_aggressive = self.sbc_max_room_aggressive
 
         obs, rewards, dones, infos = [], [], [], []
@@ -965,6 +968,8 @@ class QuadrotorEnvMulti(gym.Env):
                     self.sbc_only_metric_dict[sbc_only_item_name]['neighbor_col'].append(agent_neighbor_col_ratio)
                     self.sbc_only_metric_dict[sbc_only_item_name]['obst_col'].append(agent_obst_col_ratio)
                     self.sbc_only_metric_dict[sbc_only_item_name]['deadlock'].append(agent_deadlock_ratio)
+                    self.sbc_only_metric_dict[sbc_only_item_name]['dist_to_goal'].append(
+                        (1.0 / self.envs[0].dt) * np.mean(self.distance_to_goal[:, int(-1 * self.control_freq):]))
 
                 for i in range(len(infos)):
                     # agent_success_rate
@@ -1314,5 +1319,7 @@ class QuadrotorEnvMulti(gym.Env):
 
                 print('deadlock mean: ', np.mean(self.sbc_only_metric_dict[item_name]['deadlock']))
                 print('deadlock std: ', np.std(self.sbc_only_metric_dict[item_name]['deadlock']))
-                print('==========================================================')
 
+                print('dist_to_goal mean: ', np.mean(self.sbc_only_metric_dict[item_name]['dist_to_goal']))
+                print('dist_to_goal std: ', np.std(self.sbc_only_metric_dict[item_name]['dist_to_goal']))
+                print('==========================================================')
