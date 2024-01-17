@@ -30,6 +30,36 @@ def get_surround_sdfs(quad_poses, obst_poses, quads_sdf_obs, obst_radius, resolu
 
 
 @njit
+def get_surround_sdfs_grid(quad_poses, obst_poses, quads_sdf_obs, obst_radius, resolution=0.1):
+    # Shape of quads_sdf_obs: (quad_num, 9)
+    sdf_map = np.array([-1., -1., -1., 0., 0., 0., 1., 1., 1.])
+    sdf_map *= resolution
+
+    for i, q_pos in enumerate(quad_poses):
+        q_pos_x, q_pos_y = q_pos[0], q_pos[1]
+
+        for g_i, g_x in enumerate([q_pos_x - resolution, q_pos_x, q_pos_x + resolution]):
+            for g_j, g_y in enumerate([q_pos_y - resolution, q_pos_y, q_pos_y + resolution]):
+                grid_pos = np.array([g_x, g_y])
+
+                min_dist = 100.0
+                for o_pos in obst_poses:
+                    top_left = (o_pos[0] - obst_radius, o_pos[1] - obst_radius)
+                    bottom_right = (o_pos[0] + obst_radius, o_pos[1] + obst_radius)
+
+                    nearest_x = max(top_left[0], min(grid_pos[0], bottom_right[0]))
+                    nearest_y = max(top_left[1], min(grid_pos[1], bottom_right[1]))
+                    nearest_dist = np.sqrt((nearest_x - grid_pos[0]) ** 2 + (nearest_y - grid_pos[1]) ** 2)
+
+                    min_dist = min(min_dist, nearest_dist)
+
+                g_id = g_i * 3 + g_j
+                quads_sdf_obs[i, g_id] = min_dist
+
+    return quads_sdf_obs
+
+
+@njit
 def get_quad_circle_obst_collision_arr(quad_poses, obst_poses, obst_radius, quad_radius):
     quad_num = len(quad_poses)
     collide_threshold = quad_radius + obst_radius
@@ -113,7 +143,6 @@ def get_pos_arr(selected_indices, cell_centers, obst_area_length, room_height, g
 
     return obst_pos_arr
 
-
 def visualize_chunks(grid, chunks, start, end):
     """ Visualize the grid with different chunks marked in different colors. """
     N = len(grid)
@@ -125,13 +154,15 @@ def visualize_chunks(grid, chunks, start, end):
 
     for start_item in start:
         color_grid[start_item[0]][start_item[1]] = 1  # Mark start with color 1
-    for end_item in end:
-        color_grid[end_item[0]][end_item[1]] = 2  # Mark end with the same color
+    # for end_item in end:
+    color_grid[end[0]][end[1]] = 2  # Mark end with the same color
 
     plt.figure(figsize=(8, 8))
-    plt.imshow(color_grid, cmap='tab20', interpolation='nearest')
+    plt.imshow(np.array(color_grid).T, cmap='tab20', interpolation='nearest')
     plt.colorbar()
     plt.title('Grid Visualization with Different Chunks Colored')
+    # Invert y-axis to make (0,0) at the bottom left
+    plt.gca().invert_yaxis()
     plt.show()
 
 

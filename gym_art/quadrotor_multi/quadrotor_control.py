@@ -243,7 +243,7 @@ class MellingerController(object):
         if self.enable_sbc:
             self.sbc = NominalSBC(maximum_linf_acceleration=sbc_max_acc, radius=sbc_radius, room_box=room_box,
                                   num_agents=num_agents, num_obstacles=num_obstacles)
-            self.sbc_last_safe_acc = None
+            self.sbc_last_safe_acc = np.array([0., 0., 0.])
 
         self.step_func = self.step
 
@@ -258,6 +258,7 @@ class MellingerController(object):
 
         # Preset
         acc_des = np.array(acc_des)
+        acc_for_control = np.array(acc_des)
         sbc_distance_to_boundary = None
         if self.enable_sbc:
             no_sol_count = observation['no_sol']

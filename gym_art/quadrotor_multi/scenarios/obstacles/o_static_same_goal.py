@@ -39,20 +39,28 @@ class Scenario_o_static_same_goal(Scenario_o_base):
         self.goals = np.array([self.end_point for _ in range(self.num_agents)])
 
     def generate_end_point(self):
-        end_point = index = index_2d = None
+        end_point = None
+        index = None
+        index_2d = None
         if self.num_agents >= len(self.free_space):
-            end_point, index, index_2d = self.generate_single_point()
+            end_point, index, index_2d = self.generate_single_point(pick_list=self.free_space)
         else:
-            for _ in range(10):
-                end_point, index, index_2d = self.generate_single_point()
-                if index not in self.start_index_list:
+            pick_list = np.array([row for row in self.free_space if row not in self.start_index_2d_list])
+            for idx in range(10):
+                end_point, index, index_2d = self.generate_single_point(pick_list=pick_list)
+                dist_list = np.linalg.norm(self.start_point - end_point)
+                min_dist = np.min(dist_list)
+                end_point_pos_bool = abs(end_point[0]) < 4 and abs(end_point[1]) < 4
+                if index not in self.start_index_list and min_dist > 2 and end_point_pos_bool:
+                    # print('id: ', idx)
+                    # print('end_point: ', end_point)
                     break
 
         return end_point, index, index_2d
 
-    def generate_single_point(self):
-        idx = np.random.choice(len(self.free_space))
-        x, y = self.free_space[idx][0], self.free_space[idx][1]
+    def generate_single_point(self, pick_list):
+        idx = np.random.choice(len(pick_list))
+        x, y = pick_list[idx][0], pick_list[idx][1]
         width = self.room_dims[0]
         index = int(x + (width * y))
         pos_x, pos_y = self.cell_centers[index]

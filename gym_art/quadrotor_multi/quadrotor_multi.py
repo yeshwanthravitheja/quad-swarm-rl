@@ -93,10 +93,10 @@ class QuadrotorEnvMulti(gym.Env):
         # Generate All Quadrotors
         self.envs = []
         # # get number of obstacles
-        tmp_num_obstacles = 0
+        self.num_obstacles = 0
         self.obst_num = None
         if use_obstacles:
-            tmp_num_obstacles = int(obst_density * obst_spawn_area[0] * obst_spawn_area[1])
+            self.num_obstacles = int(obst_density * obst_spawn_area[0] * obst_spawn_area[1]) * 3
 
         for _ in range(self.num_agents):
             e = QuadrotorSingle(
@@ -111,7 +111,7 @@ class QuadrotorEnvMulti(gym.Env):
                 num_agents=num_agents,
                 neighbor_obs_type=neighbor_obs_type, num_use_neighbor_obs=self.num_use_neighbor_obs,
                 # Obstacle
-                use_obstacles=use_obstacles, num_obstacles=tmp_num_obstacles,
+                use_obstacles=use_obstacles, num_obstacles=self.num_obstacles,
                 # SBC specific,
                 enable_sbc=enable_sbc, enable_thrust=enable_thrust, sbc_radius=sbc_radius, sbc_max_acc=sbc_max_acc,
                 sbc_only=sbc_only
@@ -163,7 +163,7 @@ class QuadrotorEnvMulti(gym.Env):
         # Obstacles
         self.use_obstacles = use_obstacles
         self.obstacles = None
-        self.num_obstacles = 0
+        # self.num_obstacles = 0
         if self.use_obstacles:
             self.prev_obst_quad_collisions = []
             self.obst_quad_collisions_per_episode = 0
@@ -175,7 +175,6 @@ class QuadrotorEnvMulti(gym.Env):
                 'obst_gap': obst_gap
             }
             self.obst_spawn_area = obst_spawn_area
-            self.num_obstacles = int(obst_density * obst_spawn_area[0] * obst_spawn_area[1])
             self.obst_map = None
             self.obst_size = obst_size
             self.obst_pos_arr = None
@@ -465,7 +464,8 @@ class QuadrotorEnvMulti(gym.Env):
                                             room_dims=self.room_dims, obst_num=self.num_obstacles)
             # self.obst_map, self.obst_pos_arr, cell_centers = self.generate_obstacles()
             # self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers, free_space=None)
-            self.obst_map, self.obst_pos_arr, cell_centers, valid_free_space_list = self.obstacles.generate_obstacles_grid()
+            # self.obst_map, self.obst_pos_arr, cell_centers, valid_free_space_list = self.obstacles.generate_obstacles_grid()
+            self.obst_map, self.obst_pos_arr, cell_centers, valid_free_space_list = self.obstacles.generate_obstacles_grid_u_shape()
             self.scenario.reset(obst_map=None, cell_centers=cell_centers, free_space=valid_free_space_list, sbc_only_index=self.sbc_only_scenario_index)
             # visualize_chunks(grid=self.obst_map, chunks=self.obstacles.free_space_list, start=self.scenario.start_index_2d_list, end=self.scenario.end_index_2d_list)
         else:
@@ -566,14 +566,14 @@ class QuadrotorEnvMulti(gym.Env):
             actions_aggressive = np.clip(actions[:, 3:5], a_min=0.0, a_max=1.0)
 
             if self.sbc_only:
-                coeff_sbc_nei_max_agg = 1.0
-                coeff_sbc_obst_max_agg = 1.0
+                sbc_neighbor_aggressive = [self.sbc_max_neighbor_aggressive for _ in range(self.num_agents)]
+                sbc_obst_aggressive = [self.sbc_max_obst_aggressive for _ in range(self.num_agents)]
             else:
                 coeff_sbc_nei_max_agg = self.rew_coeff['sbc_nei_max_agg']
                 coeff_sbc_obst_max_agg = self.rew_coeff['sbc_obst_max_agg']
 
-            sbc_neighbor_aggressive = self.sbc_max_neighbor_aggressive * actions_aggressive[:, 0] * coeff_sbc_nei_max_agg
-            sbc_obst_aggressive = self.sbc_max_obst_aggressive * actions_aggressive[:, 1] * coeff_sbc_obst_max_agg
+                sbc_neighbor_aggressive = self.sbc_max_neighbor_aggressive * actions_aggressive[:, 0] * coeff_sbc_nei_max_agg
+                sbc_obst_aggressive = self.sbc_max_obst_aggressive * actions_aggressive[:, 1] * coeff_sbc_obst_max_agg
             sbc_room_aggressive = self.sbc_max_room_aggressive
 
         obs, rewards, dones, infos = [], [], [], []
@@ -1288,7 +1288,7 @@ class QuadrotorEnvMulti(gym.Env):
             self.sbc_only_metric_count = 0
             self.sbc_only_scenario_index = (self.sbc_only_scenario_index + 1) % len(self.scenarios_name)
 
-        if self.sbc_only_metric_count % 2 == 0 and self.sbc_only_metric_count > 0:
+        if self.sbc_only_metric_count % 1 == 0 and self.sbc_only_metric_count > 0:
             print('self.sbc_only_metric_dict', self.sbc_only_metric_dict)
             for scenario in self.scenarios_name:
                 # Constructing the key
