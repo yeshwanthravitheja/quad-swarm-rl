@@ -138,7 +138,7 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
         # rl_sbc & rl_mellinger
         reward_shaping['quad_rewards']['rl_sbc'] = 0.0
         reward_shaping['quad_rewards']['rl_mellinger'] = 0.0
-        reward_shaping['quad_rewards']['sbc_boundary'] = 0.0
+        # reward_shaping['quad_rewards']['sbc_boundary'] = 0.0
 
         safe_annealing = [
             TwoStageAnnealSchedule(
@@ -148,10 +148,10 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
                 coeff_name='rl_mellinger', final_value=cfg.quads_cost_rl_mellinger,
                 start_steps=cfg.quads_anneal_safe_start_steps, total_steps=cfg.quads_anneal_safe_total_steps,
                 start_value=0.0),
-            TwoStageAnnealSchedule(
-                coeff_name='sbc_boundary', final_value=cfg.quads_sbc_boundary,
-                start_steps=cfg.quads_anneal_safe_start_steps, total_steps=cfg.quads_anneal_safe_total_steps,
-                start_value=0.0),
+            # TwoStageAnnealSchedule(
+            #     coeff_name='sbc_boundary', final_value=cfg.quads_sbc_boundary,
+            #     start_steps=cfg.quads_anneal_safe_start_steps, total_steps=cfg.quads_anneal_safe_total_steps,
+            #     start_value=0.0),
         ]
     else:
         safe_annealing = None
