@@ -26,7 +26,7 @@ class QuadrotorEnvMulti(gym.Env):
                  neighbor_visible_num, neighbor_obs_type, collision_hitbox_radius, collision_falloff_radius,
 
                  # Obstacle
-                 use_obstacles, obst_density, obst_size, obst_spawn_area,
+                 use_obstacles, obst_density, obst_size, obst_spawn_area, obst_obs_type,
 
                  # Aerodynamics, Numba Speed Up, Scenarios, Room, Replay Buffer, Rendering
                  use_downwash, use_numba, quads_mode, room_dims, use_replay_buffer, quads_view_mode,
@@ -69,7 +69,7 @@ class QuadrotorEnvMulti(gym.Env):
                 num_agents=num_agents,
                 neighbor_obs_type=neighbor_obs_type, num_use_neighbor_obs=self.num_use_neighbor_obs,
                 # Obstacle
-                use_obstacles=use_obstacles,
+                use_obstacles=use_obstacles, obst_obs_type=obst_obs_type,
             )
             self.envs.append(e)
 
@@ -116,6 +116,7 @@ class QuadrotorEnvMulti(gym.Env):
 
         # Obstacles
         self.use_obstacles = use_obstacles
+        self.obst_obs_type = obst_obs_type
         self.obstacles = None
         self.num_obstacles = 0
         if self.use_obstacles:
@@ -346,7 +347,7 @@ class QuadrotorEnvMulti(gym.Env):
 
         # Scenario reset
         if self.use_obstacles:
-            self.obstacles = MultiObstacles(obstacle_size=self.obst_size, quad_radius=self.quad_arm)
+            self.obstacles = MultiObstacles(obstacle_size=self.obst_size, quad_radius=self.quad_arm, obs_type=self.obst_obs_type)
             self.obst_map, obst_pos_arr, cell_centers = self.obst_generation_given_density()
             self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers)
         else:
@@ -377,7 +378,11 @@ class QuadrotorEnvMulti(gym.Env):
         # Obstacles
         if self.use_obstacles:
             quads_pos = np.array([e.dynamics.pos for e in self.envs])
-            obs = self.obstacles.reset(obs=obs, quads_pos=quads_pos, pos_arr=obst_pos_arr)
+            if self.obst_obs_type == "ToFs":
+                quads_rots = np.array([e.dynamics.rot for e in self.envs])
+                obs = self.obstacles.reset(obs=obs, quads_pos=quads_pos, pos_arr=obst_pos_arr, quads_rots=quads_rots)
+            else:
+                obs = self.obstacles.reset(obs=obs, quads_pos=quads_pos, pos_arr=obst_pos_arr)
             self.obst_quad_collisions_per_episode = self.obst_quad_collisions_after_settle = 0
             self.prev_obst_quad_collisions = []
             self.distance_to_goal_3_5 = 0
@@ -604,7 +609,11 @@ class QuadrotorEnvMulti(gym.Env):
 
         # Concatenate obstacle observations
         if self.use_obstacles:
-            obs = self.obstacles.step(obs=obs, quads_pos=self.pos)
+            if self.obst_obs_type == "ToFs":
+                quads_rots = np.array([e.dynamics.rot for e in self.envs])
+                obs = self.obstacles.reset(obs=obs, quads_pos=self.pos, quads_rots=quads_rots)
+            else:
+                obs = self.obstacles.step(obs=obs, quads_pos=self.pos)
 
         # 6. Update info for replay buffer
         # Once agent learns how to take off, activate the replay buffer
