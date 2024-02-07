@@ -305,7 +305,7 @@ class QuadrotorSingle:
             "wall": [np.zeros(6), 5.0 * np.ones(6)],
             "floor": [np.zeros(1), self.room_box[1][2] * np.ones(1)],
             "octomap": [-10 * np.ones(9), 10 * np.ones(9)],
-            "ToFs": [np.zeros(8), 2 * np.ones(8)],
+            "ToFs": [np.zeros(32), 2 * np.ones(32)],
         }
         self.obs_comp_names = list(self.obs_space_low_high.keys())
         self.obs_comp_sizes = [self.obs_space_low_high[name][1].size for name in self.obs_comp_names]

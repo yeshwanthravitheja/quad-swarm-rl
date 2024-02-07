@@ -13,7 +13,7 @@ class MultiObstacles:
         self.resolution = 0.1
         self.obs_type = obs_type
         self.fov_angle = 45 * np.pi / 180
-        self.scan_angle_arr = np.array([0.])
+        self.scan_angle_arr = np.array([0., np.pi/2, np.pi, -np.pi/2])
         self.num_rays = 8
 
     def reset(self, obs, quads_pos, pos_arr, quads_rots=None):
