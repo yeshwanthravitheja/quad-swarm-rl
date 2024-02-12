@@ -5,12 +5,13 @@ from gym_art.quadrotor_multi.obstacles.utils import get_surround_sdfs, collision
 
 
 class MultiObstacles:
-    def __init__(self, obstacle_size=1.0, quad_radius=0.046, obs_type='octomap'):
+    def __init__(self, obstacle_size=1.0, quad_radius=0.046, obs_type='octomap', obst_noise=0.0):
         self.size = obstacle_size
         self.obstacle_radius = obstacle_size / 2.0
         self.quad_radius = quad_radius
         self.pos_arr = []
         self.resolution = 0.1
+        self.obst_noise = obst_noise
         self.obs_type = obs_type
         self.fov_angle = 45 * np.pi / 180
         self.scan_angle_arr = np.array([0., np.pi/2, np.pi, -np.pi/2])
@@ -28,7 +29,7 @@ class MultiObstacles:
             quads_sdf_obs = get_ToFs_depthmap(quad_poses=quads_pos, obst_poses=self.pos_arr,
                                               obst_radius=self.obstacle_radius, scan_max_dist=2.0,
                                               quad_rotations=quads_rots, scan_angle_arr=self.scan_angle_arr,
-                                              fov_angle=self.fov_angle, num_rays=self.num_rays)
+                                              fov_angle=self.fov_angle, num_rays=self.num_rays, obst_noise=self.obst_noise)
 
         obs = np.concatenate((obs, quads_sdf_obs), axis=1)
 
@@ -44,7 +45,7 @@ class MultiObstacles:
             quads_sdf_obs = get_ToFs_depthmap(quad_poses=quads_pos, obst_poses=self.pos_arr,
                                               obst_radius=self.obstacle_radius, scan_max_dist=2.0,
                                               quad_rotations=quads_rots, scan_angle_arr=self.scan_angle_arr,
-                                              fov_angle=self.fov_angle, num_rays=self.num_rays)
+                                              fov_angle=self.fov_angle, num_rays=self.num_rays, obst_noise=self.obst_noise)
 
         obs = np.concatenate((obs, quads_sdf_obs), axis=1)
 

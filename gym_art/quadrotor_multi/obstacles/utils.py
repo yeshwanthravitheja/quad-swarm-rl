@@ -74,7 +74,7 @@ def is_surface_in_cylinder_view(vector, q_pos, o_pos, o_radius, fov_angle):
 
 @njit
 def get_ToFs_depthmap(quad_poses, obst_poses, obst_radius, scan_max_dist,
-                              quad_rotations, scan_angle_arr, num_rays, fov_angle):
+                              quad_rotations, scan_angle_arr, num_rays, fov_angle, obst_noise):
         """
             quad_poses:     quadrotor positions, only with xy pos
             obst_poses:     obstacle positions, only with xy pos
@@ -124,6 +124,7 @@ def get_ToFs_depthmap(quad_poses, obst_poses, obst_radius, scan_max_dist,
                             quads_obs[q_id][ray_id*num_rays+sec_id] = min(quads_obs[q_id][ray_id*num_rays+sec_id], distance-sensor_offset)
 
 
+        quads_obs = quads_obs + np.random.normal(loc=0, scale=obst_noise, size=quads_obs.shape)
         quads_obs = np.clip(quads_obs, a_min=0.0, a_max=scan_max_dist)
         return quads_obs
 
