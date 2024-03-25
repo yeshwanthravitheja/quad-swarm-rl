@@ -21,6 +21,7 @@ HALF_PAGE_WIDTH = FULL_PAGE_WIDTH / 2
 plt.rcParams['figure.figsize'] = (FULL_PAGE_WIDTH, 2.5)  # (2.5, 2.0) 7.5， 4
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
+font_size = 14
 
 NUM_AGENTS = 8
 EPISODE_DURATION = 16  # seconds
@@ -307,9 +308,9 @@ def plot(index, interpolated_key, ax, set_xlabel, legend_name, group_id, set_y_s
 
     # set title
     title_text = params['name']
-    ax.set_title(title_text, fontsize=10)
+    ax.set_title(title_text, fontsize=font_size)
     # if set_xlabel:
-    ax.set_xlabel('Total environment steps')
+    ax.set_xlabel('Total environment steps', fontsize=font_size)
 
     x, y = interpolated_key
     x = np.array(x)
@@ -392,12 +393,12 @@ def plot(index, interpolated_key, ax, set_xlabel, legend_name, group_id, set_y_s
 
     label = params.get('label')
     if label:
-        ax.set_ylabel(label, fontsize=10)
+        ax.set_ylabel(label, fontsize=font_size)
 
         # hide tick of axis
         ax.xaxis.tick_bottom()
     ax.yaxis.tick_left()
-    ax.tick_params(which='major', length=0)
+    ax.tick_params(which='major', length=0, labelsize=font_size)
 
     ax.grid(color='#B3B3B3', linestyle='-', linewidth=0.25, alpha=0.2)
     # ax.ticklabel_format(style='plain', axis='y', scilimits=(0, 0))
@@ -457,11 +458,11 @@ def main():
 
     handles, labels = ax[0].get_legend_handles_labels()
     # TO CHANGE
-    lgd = fig.legend(handles, labels, loc='upper center', ncol=5, bbox_to_anchor=(0.5, 1.07), fontsize=10)
+    lgd = fig.legend(handles, labels, loc='upper center', ncol=5, bbox_to_anchor=(0.5, 1.12), fontsize=font_size)
     lgd.set_in_layout(True)
 
     plt.tight_layout(pad=1.0)
-    plt.subplots_adjust(wspace=0.15, hspace=0.25)
+    plt.subplots_adjust(wspace=0.25, hspace=0.25)
     # plt.margins(0, 0)
 
     save_dir = os.path.join(os.getcwd(), 'final_plots')
