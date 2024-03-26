@@ -3,7 +3,7 @@ def crazyflie_params():
     ## Geometric parameters for Inertia and the model
     geom_params = {}
     geom_params["body"] = {"l": 0.03, "w": 0.03, "h": 0.004, "m": 0.005}
-    geom_params["payload"] = {"l": 0.035, "w": 0.02, "h": 0.008, "m": 0.01}
+    geom_params["payload"] = {"l": 0.035, "w": 0.02, "h": 0.008, "m": 0.0185}
     geom_params["arms"] = {"l": 0.022, "w":0.005, "h":0.005, "m":0.001}
     geom_params["motors"] = {"h":0.02, "r":0.0035, "m":0.0015}
     geom_params["propellers"] = {"h":0.002, "r":0.022, "m":0.00075}
