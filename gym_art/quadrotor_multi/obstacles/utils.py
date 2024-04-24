@@ -146,8 +146,8 @@ def collision_detection(quad_poses, obst_poses, obst_radius, quad_radius):
 @njit
 def get_cell_centers(obst_area_length, obst_area_width, grid_size=1.):
     count = 0
-    i_len = obst_area_length / grid_size
-    j_len = obst_area_width / grid_size
+    i_len = obst_area_length // grid_size
+    j_len = obst_area_width // grid_size
     cell_centers = np.zeros((int(i_len * j_len), 2))
     for i in np.arange(0, obst_area_length, grid_size):
         for j in np.arange(obst_area_width - grid_size, -grid_size, -grid_size):

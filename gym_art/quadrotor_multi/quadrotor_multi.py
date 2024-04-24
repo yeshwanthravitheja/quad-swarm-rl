@@ -30,7 +30,7 @@ class QuadrotorEnvMulti(gym.Env):
 
                  # Aerodynamics, Numba Speed Up, Scenarios, Room, Replay Buffer, Rendering
                  use_downwash, use_numba, quads_mode, room_dims, use_replay_buffer, quads_view_mode,
-                 quads_render, obst_obs_type, obst_noise,
+                 quads_render, obst_obs_type, obst_noise, grid_size,
 
                  # Quadrotor Specific (Do Not Change)
                  dynamics_params, raw_control, raw_control_zero_middle,
@@ -130,6 +130,8 @@ class QuadrotorEnvMulti(gym.Env):
             self.num_obstacles = int(obst_density * obst_spawn_area[0] * obst_spawn_area[1])
             self.obst_map = None
             self.obst_size = obst_size
+            self.grid_size = grid_size
+            assert self.obst_size <= self.grid_size
 
             # Log more info
             self.distance_to_goal_3_5 = 0
@@ -303,12 +305,13 @@ class QuadrotorEnvMulti(gym.Env):
 
         return floor_crash_list, wall_crash_list, ceiling_crash_list
 
-    def obst_generation_given_density(self, grid_size=1.0):
+    def obst_generation_given_density(self):
         obst_area_length, obst_area_width = int(self.obst_spawn_area[0]), int(self.obst_spawn_area[1])
-        num_room_grids = obst_area_length * obst_area_width
+        num_room_grids = (obst_area_length // self.grid_size) * (obst_area_width // self.grid_size)
+        num_room_grids = int(num_room_grids)
 
         cell_centers = get_cell_centers(obst_area_length=obst_area_length, obst_area_width=obst_area_width,
-                                        grid_size=grid_size)
+                                        grid_size=self.grid_size)
 
         room_map = [i for i in range(0, num_room_grids)]
 
@@ -316,11 +319,14 @@ class QuadrotorEnvMulti(gym.Env):
 
         obst_pos_arr = []
         # 0: No Obst, 1: Obst
-        obst_map = np.zeros([obst_area_length, obst_area_width])
+        obst_grid_length_num = int(obst_area_length // self.grid_size)
+        obst_grid_width_num = int(obst_area_width // self.grid_size)
+
+        obst_map = np.zeros([obst_grid_length_num, obst_grid_width_num])
         for obst_id in obst_index:
-            rid, cid = obst_id // obst_area_width, obst_id - (obst_id // obst_area_width) * obst_area_width
+            rid, cid = obst_id // obst_grid_width_num, obst_id - (obst_id // obst_grid_width_num) * obst_grid_width_num
             obst_map[rid, cid] = 1
-            obst_item = list(cell_centers[rid + int(obst_area_length / grid_size) * cid])
+            obst_item = list(cell_centers[rid + obst_grid_length_num * cid])
             obst_item.append(self.room_dims[2] / 2.)
             obst_pos_arr.append(obst_item)
 
