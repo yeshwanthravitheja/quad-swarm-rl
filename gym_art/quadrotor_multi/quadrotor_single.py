@@ -19,6 +19,7 @@ References:
 """
 import copy
 
+import numpy as np
 from gymnasium.utils import seeding
 
 import gym_art.quadrotor_multi.get_state as get_state
@@ -26,12 +27,14 @@ import gym_art.quadrotor_multi.quadrotor_randomization as quad_rand
 from gym_art.quadrotor_multi.quadrotor_control import *
 from gym_art.quadrotor_multi.quadrotor_dynamics import QuadrotorDynamics
 from gym_art.quadrotor_multi.sensor_noise import SensorNoise
+from scipy.spatial.transform import Rotation as scipy_rotation
 
 GRAV = 9.81  # default gravitational constant
 
 
 # reasonable reward function for hovering at a goal and not flying too high
-def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, action_prev, on_floor=False):
+def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, action_prev, on_floor=False,
+                            obs_rel_rot=False, base_rot=np.eye(3)):
     # Distance to the goal
     dist = np.linalg.norm(goal - dynamics.pos)
     cost_pos_raw = dist
@@ -42,10 +45,26 @@ def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, 
     cost_effort = rew_coeff["effort"] * cost_effort_raw
 
     # Loss orientation
-    if on_floor:
-        cost_orient_raw = 1.0
+    if obs_rel_rot:
+        if on_floor:
+            cost_orient_raw = 3.0
+        else:
+            tmp_rot = scipy_rotation.from_matrix(dynamics.rot)
+            tmp_base_rot = scipy_rotation.from_matrix(base_rot)
+
+            # Extract the roll, pitch, and yaw angles
+            rot_yaw, rot_pitch, rot_roll = tmp_rot.as_euler('zxy', degrees=False)
+            base_yaw, base_pitch, base_roll = tmp_base_rot.as_euler('zxy', degrees=False)
+
+            rel_yaw, rel_pitch, rel_roll = abs(rot_yaw - base_yaw), abs(rot_pitch - base_pitch), abs(rot_roll - base_roll)
+            rel_yaw, rel_pitch, rel_roll = rel_yaw / np.pi, rel_pitch / np.pi, rel_roll / np.pi
+
+            cost_orient_raw = rel_yaw + rel_pitch + rel_roll
     else:
-        cost_orient_raw = -dynamics.rot[2, 2]
+        if on_floor:
+            cost_orient_raw = 1.0
+        else:
+            cost_orient_raw = -dynamics.rot[2, 2]
 
     cost_orient = rew_coeff["orient"] * cost_orient_raw
 
@@ -102,7 +121,8 @@ class QuadrotorSingle:
                  sim_steps=2, obs_repr="xyz_vxyz_R_omega", ep_time=7, room_dims=(10.0, 10.0, 10.0),
                  init_random_state=False, sense_noise=None, verbose=False, gravity=GRAV,
                  t2w_std=0.005, t2t_std=0.0005, excite=False, dynamics_simplification=False, use_numba=False,
-                 neighbor_obs_type='none', num_agents=1, num_use_neighbor_obs=0, use_obstacles=False, obst_obs_type='none'):
+                 neighbor_obs_type='none', num_agents=1, num_use_neighbor_obs=0, use_obstacles=False,
+                 obst_obs_type='none', obs_rel_rot=False):
         np.seterr(under='ignore')
         """
         Args:
@@ -138,6 +158,8 @@ class QuadrotorSingle:
         """
         # Numba Speed Up
         self.use_numba = use_numba
+        self.obs_rel_rot = obs_rel_rot
+        self.base_rot = np.eye(3)
 
         # Room
         self.room_length = room_dims[0]
@@ -352,7 +374,8 @@ class QuadrotorSingle:
         self.time_remain = self.ep_len - self.tick
         reward, rew_info = compute_reward_weighted(
             dynamics=self.dynamics, goal=self.goal, action=action, dt=self.dt, time_remain=self.time_remain,
-            rew_coeff=self.rew_coeff, action_prev=self.actions[1], on_floor=self.dynamics.on_floor)
+            rew_coeff=self.rew_coeff, action_prev=self.actions[1], on_floor=self.dynamics.on_floor,
+            obs_rel_rot=self.obs_rel_rot, base_rot=self.base_rot)
 
         self.tick += 1
         done = self.tick > self.ep_len

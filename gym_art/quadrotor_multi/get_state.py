@@ -22,7 +22,11 @@ def state_xyz_vxyz_R_omega(self):
             acc=self.dynamics.accelerometer,
             dt=self.dt
         )
-    return np.concatenate([pos - self.goal[:3], vel, rot.flatten(), omega])
+
+    if self.obs_rel_rot:
+        return np.concatenate([pos - self.goal[:3], vel, rot.flatten() - self.base_rot.flatten(), omega])
+    else:
+        return np.concatenate([pos - self.goal[:3], vel, rot.flatten(), omega])
 
 
 def state_xyz_vxyz_R_omega_floor(self):
