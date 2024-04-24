@@ -184,7 +184,7 @@ class QuadrotorEnvMulti(gym.Env):
 
         # Rendering
         # # set to true whenever we need to reset the OpenGL scene in render()
-        self.render_mode =render_mode
+        self.render_mode = render_mode
         self.quads_render = quads_render
         self.scenes = []
         if self.quads_render:

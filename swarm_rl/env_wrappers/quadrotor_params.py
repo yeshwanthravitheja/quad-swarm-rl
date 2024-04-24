@@ -117,6 +117,7 @@ def add_quadrotors_env_args(env, parser):
                    type=str, choices=['topdown', 'chase', 'side', 'global', 'corner0', 'corner1', 'corner2', 'corner3', 'topdownfollow'],
                    help='Choose which kind of view/camera to use')
     p.add_argument('--quads_render', default=False, type=bool, help='Use render or not')
+    p.add_argument('--quads_render_mode', default='human', type=str, choices=['human', 'rgb_array'], help='Rendering mode, V-value requires rgb_array')
     p.add_argument('--visualize_v_value', action='store_true', help="Visualize v value map")
 
     # Sim2Real
