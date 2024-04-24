@@ -42,7 +42,7 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
         collision_falloff_radius=cfg.quads_collision_falloff_radius,
         # Obstacle
         use_obstacles=cfg.quads_use_obstacles, obst_density=cfg.quads_obst_density, obst_size=cfg.quads_obst_size,
-        obst_spawn_area=cfg.quads_obst_spawn_area,
+        obst_spawn_area=cfg.quads_obst_spawn_area, obst_obs_type=cfg.quads_obstacle_obs_type, obst_noise=cfg.quads_obst_noise,
 
         # Aerodynamics
         use_downwash=cfg.quads_use_downwash,
@@ -61,7 +61,7 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
         dynamics_randomize_every=dyn_randomize_every, dynamics_change=dynamics_change, dyn_sampler_1=sampler_1,
         sense_noise=sense_noise, init_random_state=False,
         # Rendering
-        render_mode=render_mode,
+        render_mode=cfg.quads_render_mode,
     )
 
     if use_replay_buffer:
@@ -105,7 +105,7 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
         checkpoints = Learner.get_checkpoints(Learner.checkpoint_dir(cfg, policy_id), f"{name_prefix}_*")
         checkpoint_dict = Learner.load_checkpoint(checkpoints, device)
         actor_critic.load_state_dict(checkpoint_dict["model"])
-        env = V_ValueMapWrapper(env, actor_critic)
+        env = V_ValueMapWrapper(env, actor_critic, render_mode='rgb_array')
 
     return env
 

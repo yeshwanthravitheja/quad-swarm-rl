@@ -54,7 +54,9 @@ def add_quadrotors_env_args(env, parser):
     # # Obstacle Features
     p.add_argument('--quads_use_obstacles', default=False, type=str2bool, help='Use obstacles or not')
     p.add_argument('--quads_obstacle_obs_type', default='none', type=str,
-                   choices=['none', 'octomap'], help='Choose what kind of obs to send to encoder.')
+                   choices=['none', 'octomap', 'ToFs'], help='Choose what kind of obs to send to encoder.')
+    p.add_argument('--quads_obst_noise', default=0.0, type=float,
+                   help='Standard deviation of Gaussian noise on obstacle observations')
     p.add_argument('--quads_obst_density', default=0.2, type=float, help='Obstacle density in the map')
     p.add_argument('--quads_obst_size', default=1.0, type=float, help='The radius of obstacles')
     p.add_argument('--quads_obst_spawn_area', nargs='+', default=[6.0, 6.0], type=float,
@@ -115,6 +117,7 @@ def add_quadrotors_env_args(env, parser):
                    type=str, choices=['topdown', 'chase', 'side', 'global', 'corner0', 'corner1', 'corner2', 'corner3', 'topdownfollow'],
                    help='Choose which kind of view/camera to use')
     p.add_argument('--quads_render', default=False, type=bool, help='Use render or not')
+    p.add_argument('--quads_render_mode', default='human', type=str, choices=['human', 'rgb_array'], help='Rendering mode, V-value requires rgb_array')
     p.add_argument('--visualize_v_value', action='store_true', help="Visualize v value map")
 
     # Sim2Real
