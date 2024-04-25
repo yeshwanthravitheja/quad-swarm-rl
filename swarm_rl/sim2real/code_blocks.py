@@ -34,12 +34,32 @@ static float last_layer_means[NUM_TOKENS];
 static float last_layer_variances[NUM_TOKENS];
 static float attn_embeds[NUM_TOKENS][D_MODEL];
 
-static float neighbor_embeds[NBR_DIM];
-static float obstacle_embeds[OBST_DIM];
 static float output_embeds[3 * D_MODEL];
 
 float base;
 float exponent;
+"""
+
+headers_multi_deepset_evaluation = """
+#include <random>
+#include <vector>
+#include <iostream>
+#include <algorithm>
+#include <cstring> 
+
+
+typedef struct control_t_n {
+	float thrust_0;
+	float thrust_1;
+	float thrust_2;
+	float thrust_3;
+} control_t_n;
+
+void networkEvaluate(control_t_n* control_n, const float* state_array);
+
+static const int NEIGHBORS = 2;
+static const int NBR_OBS_DIM = 6; 
+
 """
 
 
@@ -61,7 +81,7 @@ typedef struct control_t_n {
 void networkEvaluate(control_t_n* control_n, const float* state_array);
 
 static const int NEIGHBORS = 6;
-static const int NBR_DIM = 6; 
+static const int NBR_OBS_DIM = 6; 
 
 static const int NUM_OBSTACLES = 2; 
 static const int OBST_DIM = 9;
@@ -393,6 +413,26 @@ int main(const float *indatav, size_t size, float *outdatav)
     
     
     networkEvaluate(&motorThrusts, indatav);
+
+    outdatav[0] = motorThrusts.thrust_0;
+    outdatav[1] = motorThrusts.thrust_1;
+    outdatav[2] = motorThrusts.thrust_2;
+    outdatav[3] = motorThrusts.thrust_3;
+    return EXIT_SUCCESS;
+}
+
+"""
+
+multi_drone_deepset_eval = """
+
+int main(const float *self_indatav, const float *nbr_indatav, float *outdatav)
+{
+    size_t i;
+    control_t_n motorThrusts;
+
+    neighborEmbedder(nbr_indatav);
+    
+    networkEvaluate(&motorThrusts, self_indatav);
 
     outdatav[0] = motorThrusts.thrust_0;
     outdatav[1] = motorThrusts.thrust_1;

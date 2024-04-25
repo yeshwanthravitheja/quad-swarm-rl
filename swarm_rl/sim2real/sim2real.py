@@ -15,46 +15,35 @@ from swarm_rl.env_wrappers.quad_utils import make_quadrotor_env_multi
 from swarm_rl.sim2real.code_blocks import (
     headers_network_evaluate,
     headers_evaluation,
+    headers_multi_deepset_evaluation,
     linear_activation,
     sigmoid_activation,
     relu_activation,
     single_drone_eval,
     multi_drone_attn_eval,
+    multi_drone_deepset_eval,
     headers_multi_agent_attention,
     attention_body
 )
 from swarm_rl.train import register_swarm_components
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--torch_model_dir', type=str, default='swarm_rl/sim2real/torch_models/single',
-                        help='Path where the policy and cfg is stored')
-    parser.add_argument('--output_dir', type=str, default='swarm_rl/sim2real/c_models',
-                        help='Where you want the c model to be saved')
-    parser.add_argument('--output_model_name', type=str, default='model.c')
-    parser.add_argument('--testing', type=lambda x: bool(strtobool(x)), default=False,
-                        help='Whether or not to save the c model in testing mode. Enable this if you want to run the '
-                             'unit test to make sure the output of the c model is the same as the pytorch model. Set '
-                             'to False if you want to output a c model that will be actually used for sim2real')
-    parser.add_argument('--model_type', type=str, choices=['single', 'attention'],
-                        help='What kind of model we are working with. '
-                             'Currently only single drone models are supported.')
-    args = parser.parse_args()
-    return AttrDict(vars(args))
-
-
 def torch_to_c_model(args):
     model_dir = Path(args.torch_model_dir)
-    model = load_sf_model(model_dir, args.model_type)
+    model, cfg = load_sf_model(model_dir, args.model_type)
 
     output_dir = Path(args.output_dir)
     output_path = output_dir.joinpath(args.model_type, args.output_model_name)
     output_folder = output_dir.joinpath(args.model_type)
+
     if args.model_type == 'single':
         generate_c_model(model, str(output_path), str(output_folder), testing=args.testing)
-    else:
+    elif args.model_type == 'multi_deepset':
+        generate_c_model_multi_deepset(model, str(output_path), str(output_folder), testing=args.testing)
+    elif args.model_type == 'multi_obst_attn':
         generate_c_model_attention(model, str(output_path), str(output_folder), testing=args.testing)
+    else:
+        raise NotImplementedError(f'Model type {args.model_type} is not supported')
 
 
 def load_sf_model(model_dir: Path, model_type: str):
@@ -64,6 +53,10 @@ def load_sf_model(model_dir: Path, model_type: str):
     assert model_dir.exists(), f'Path {str(model_dir)} is not a valid path'
     # Load hyper-parameters
     cfg_path = model_dir.joinpath('config.json')
+    # Compatibility with sf2
+    if not cfg_path.exists():
+        cfg_path = model_dir.joinpath('cfg.json')
+
     with open(cfg_path, 'r') as f:
         args = json.load(f)
     args = AttrDict(args)
@@ -90,7 +83,7 @@ def load_sf_model(model_dir: Path, model_type: str):
     model_path = list(model_dir.glob('*.pth'))[0]
     model.load_state_dict(torch.load(model_path)['model'])
 
-    return model
+    return model, args
 
 
 def process_layer(name: str, param: nn.Parameter, type: str):
@@ -201,9 +194,77 @@ def generate_c_weights_attention(model: nn.Module, transpose: bool = False):
     return info
 
 
+def generate_c_weights_multi_deepset(model: nn.Module, transpose: bool = False):
+    """
+        Generate c friendly weight strings for the c version of the multi-agent deepset model
+        The order is self-encoder, neighbor-encoder and final combined output layers
+
+        Model architecture can be found in swarm_rl/quad_multi_model.py
+    """
+    self_weights, self_biases, self_layer_names, self_bias_names = [], [], [], []
+    neighbor_weights, neighbor_biases, nbr_layer_names, nbr_bias_names = [], [], [], []
+    out_weights, out_biases, out_layer_names, out_bias_names = [], [], [], [],
+    outputs = []
+    n_self, n_nbr = 0, 0
+
+    for name, param in model.named_parameters():
+        # first get the self encoder weights 
+        if transpose:
+            param = param.T
+        c_name = name.replace('.', '_')
+        if 'weight' in c_name and 'critic' not in c_name and 'layer_norm' not in c_name:
+            weight = process_layer(c_name, param, type='weight')
+            if 'self_embed' in c_name:
+                self_layer_names.append(name)
+                self_weights.append(weight)
+                outputs.append('static float output_' + str(n_self) + '[' + str(param.shape[1]) + '];\n')
+                n_self += 1
+            elif 'neighbor_encoder' in c_name:
+                nbr_layer_names.append(name)
+                neighbor_weights.append(weight)
+                outputs.append('static float nbr_output_' + str(n_nbr) + '[NEIGHBORS]' +'[' + str(param.shape[1]) + '];\n')
+                n_nbr += 1
+            else:
+                # output layer
+                out_layer_names.append(name)
+                out_weights.append(weight)
+                # these will be considered part of the self encoder
+                outputs.append('static float output_' + str(n_self) + '[' + str(param.shape[1]) + '];\n')
+                n_self += 1
+        
+        if ('bias' in c_name or 'layer_norm' in c_name) and 'critic' not in c_name:
+            bias = process_layer(c_name, param, type='bias')
+            if 'self_embed' in c_name:
+                self_bias_names.append(name)
+                self_biases.append(bias)
+            elif 'neighbor_encoder' in c_name:
+                nbr_bias_names.append(name)
+                neighbor_biases.append(bias)
+            else:
+                # output layer
+                out_bias_names.append(name)
+                out_biases.append(bias)
+    
+    self_layer_names += out_layer_names
+    self_bias_names += out_bias_names
+    self_weights += out_weights
+    self_biases += out_biases
+    info = {
+        'encoders': {
+            'self': [self_layer_names, self_bias_names, self_weights, self_biases],
+            'nbr': [nbr_layer_names, nbr_bias_names, neighbor_weights, neighbor_biases],
+        },
+        'out': [out_layer_names, out_bias_names, out_weights, out_biases],
+        'outputs': outputs
+    }
+
+    return info
+        
+
+
 def generate_c_weights(model: nn.Module, transpose: bool = False):
     """
-        Generate c friendly weight strings for the c version of the model
+        Generate c friendly weight strings for the c version of the single drone model
     """
     weights, biases = [], []
     layer_names, bias_names, outputs = [], [], []
@@ -244,7 +305,7 @@ def generate_c_weights(model: nn.Module, transpose: bool = False):
 
 
 def self_encoder_c_str(prefix: str, weight_names: List[str], bias_names: List[str]):
-    method = """void networkEvaluate(struct control_t_n *control_n, const float *state_array) {"""
+    method = """\nvoid networkEvaluate(struct control_t_n *control_n, const float *state_array) {"""
     num_layers = len(weight_names)
     # write the for loops for forward-prop
     for_loops = []
@@ -261,7 +322,7 @@ def self_encoder_c_str(prefix: str, weight_names: List[str], bias_names: List[st
     for_loops.append(input_for_loop)
 
     # rest of the hidden layers
-    for n in range(1, num_layers - 1):
+    for n in range(1, num_layers - 2):
         for_loop = f'''
             for (int i = 0; i < {prefix}_structure[{str(n)}][1]; i++) {{
                 output_{str(n)}[i] = 0;
@@ -273,6 +334,32 @@ def self_encoder_c_str(prefix: str, weight_names: List[str], bias_names: List[st
             }}
         '''
         for_loops.append(for_loop)
+
+    # Concat self embedding and neighbor embedding
+    for_loop = f'''
+        // Concat self_embed and neighbor_embed
+        for (int i = 0; i < D_SELF; i++) {{
+            output_embeds[i] = output_{num_layers - 3}[i];
+        }}
+        for (int i = 0; i < D_NBR; i++) {{
+            output_embeds[D_SELF + i] = neighbor_embeds[i];
+        }}
+    '''
+    for_loops.append(for_loop)
+
+    # forward-prop of feedforward layer
+    output_for_loop = f'''
+        // Feedforward layer
+        for (int i = 0; i < self_structure[2][1]; i++) {{
+            output_{num_layers - 2}[i] = 0;
+            for (int j = 0; j < self_structure[2][0] ; j++) {{
+                output_{num_layers - 2}[i] += output_embeds[j] * actor_encoder_feed_forward_0_weight[j][i];
+                }}
+            output_{num_layers - 2}[i] += actor_encoder_feed_forward_0_bias[i];
+            output_{num_layers - 2}[i] = tanhf(output_2[i]);
+        }}
+    '''
+    for_loops.append(output_for_loop)
 
     # the last hidden layer which is supposed to have no non-linearity
     n = num_layers - 1
@@ -376,6 +463,64 @@ def self_encoder_attn_c_str(prefix: str, weight_names: List[str], bias_names: Li
     return method
 
 
+def neighbor_encoder_deepset_c_string(prefix: str, weight_names: List[str], bias_names: List[str]):
+    method = """void neighborEmbedder(const float neighbor_inputs[NEIGHBORS*NBR_OBS_DIM]) {
+    """
+    num_layers = len(weight_names)
+
+    # write the for loops for forward-prop
+    for_loops = []
+    input_for_loop = f'''
+            for (int n = 0; n < NEIGHBORS; n++) {{            
+                for (int i = 0; i < {prefix}_structure[0][1]; i++) {{
+                    {prefix}_output_0[n][i] = 0; 
+                    for (int j = 0; j < {prefix}_structure[0][0]; j++) {{
+                        {prefix}_output_0[n][i] += neighbor_inputs[n*NBR_OBS_DIM + j] * actor_encoder_neighbor_encoder_embedding_mlp_0_weight[j][i]; 
+                    }}
+                    {prefix}_output_0[n][i] += actor_encoder_neighbor_encoder_embedding_mlp_0_bias[i];
+                    {prefix}_output_0[n][i] = tanhf({prefix}_output_0[n][i]);
+                }}
+            }}
+    '''
+    for_loops.append(input_for_loop)
+
+    # hidden layers
+    for n in range(1, num_layers):
+        for_loop = f'''
+            for (int n = 0; n < NEIGHBORS; n++) {{
+                for (int i = 0; i < {prefix}_structure[{str(n)}][1]; i++) {{
+                    {prefix}_output_{str(n)}[n][i] = 0;
+                    for (int j = 0; j < {prefix}_structure[{str(n)}][0]; j++) {{
+                        {prefix}_output_{str(n)}[n][i] += {prefix}_output_{str(n - 1)}[n][j] * {weight_names[n].replace('.', '_')}[j][i];
+                    }}
+                    {prefix}_output_{str(n)}[n][i] += {bias_names[n].replace('.', '_')}[i];
+                    {prefix}_output_{str(n)}[n][i] = tanhf({prefix}_output_{str(n)}[n][i]);
+                }}
+            }}
+        '''
+        for_loops.append(for_loop)
+
+    # Average the neighbor embeddings
+    for_loop = f'''
+            // Average over number of neighbors
+            for (int i = 0; i < D_NBR; i++) {{
+                neighbor_embeds[i] = 0;
+                for (int n = 0; n < NEIGHBORS; n++) {{
+                    neighbor_embeds[i] += {prefix}_output_{str(num_layers-1)}[n][i];
+                }}
+                neighbor_embeds[i] /= NEIGHBORS;
+            }}
+    '''
+    for_loops.append(for_loop)
+            
+
+    for code in for_loops:
+        method += code
+    # method closing bracket
+    method += """}\n\n"""
+    return method
+
+
 def neighbor_encoder_c_string(prefix: str, weight_names: List[str], bias_names: List[str]):
     method = """void neighborEmbedder(const float neighbor_inputs[NEIGHBORS * NBR_DIM]) {
     """
@@ -421,7 +566,6 @@ def neighbor_encoder_c_string(prefix: str, weight_names: List[str], bias_names: 
                     output_{str(n)}[i] += {bias_names[n].replace('.', '_')}[i];
                     neighbor_embeds[i] += output_{str(n)}[i]; 
                 }}
-            }}
         '''
         for_loops.append(output_for_loop)
 
@@ -567,6 +711,94 @@ def generate_c_model_attention(model: nn.Module, output_path: str, output_folder
     return source
 
 
+def generate_c_model_multi_deepset(model: nn.Module, output_path: str, output_folder: str, testing=False):
+    """
+        Generate c model for the multi-agent deepset model
+    """
+    model_state_dict = model.state_dict()
+    for name, param in model_state_dict.items():
+        print(name, param.shape)
+    
+    infos = generate_c_weights_multi_deepset(model, transpose=True)
+    model_state_dict = model.state_dict()
+
+    source = ""
+    structures = ""
+    methods = ""
+
+    # setup all the encoders
+    for enc_name, data in infos['encoders'].items():
+        # data contains [weight_names, bias_names, weights, biases]
+        structure = f'static const int {enc_name}_structure [' + str(int(len(data[0]))) + '][2] = {'
+
+        weight_names, bias_names = data[0], data[1]
+        for w_name, b_name in zip(weight_names, bias_names):
+            w = model_state_dict[w_name].T
+            structure += '{' + str(w.shape[0]) + ', ' + str(w.shape[1]) + '},'
+
+        # complete the structure array
+        # get rid of the comma after the last curly bracket
+        structure = structure[:-1]
+        structure += '};\n'
+        structures += structure
+
+        method = ""
+        if 'self' in enc_name:
+            method = self_encoder_c_str(enc_name, weight_names, bias_names)
+        elif 'nbr' in enc_name:
+            method = neighbor_encoder_deepset_c_string(enc_name, weight_names, bias_names)
+        methods += method
+    
+    structures += """\n
+static const int D_SELF = self_structure[1][1];
+static const int D_NBR = nbr_structure[1][1];
+
+static float neighbor_embeds[D_NBR];
+static float output_embeds[D_SELF + D_NBR];
+    
+"""
+
+    # Source code: headers + helper funcs + structures + methods
+    # headers
+    source += headers_network_evaluate if not testing else headers_multi_deepset_evaluation
+
+     # helper funcs
+    source += linear_activation
+    source += sigmoid_activation
+    source += relu_activation
+
+    # network eval func
+    source += structures
+    outputs = infos['outputs']
+    for output in outputs:
+        source += output
+
+    encoders = infos['encoders']
+
+    for key, vals in encoders.items():
+        weights, biases = vals[-2], vals[-1]
+        for w in weights:
+            source += w
+        for b in biases:
+            source += b
+
+    source += methods
+
+    if testing:
+        source += multi_drone_deepset_eval
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    if output_path:
+        with open(output_path, 'w') as f:
+            f.write(source)
+        f.close()
+
+    return source
+
+
+
 def generate_c_model(model: nn.Module, output_path: str, output_folder: str, testing=False):
     layer_names, bias_names, weights, biases, outputs = generate_c_weights(model, transpose=True)
     num_layers = len(layer_names)
@@ -632,7 +864,7 @@ def generate_c_model(model: nn.Module, output_path: str, output_folder: str, tes
     """
 
     # construct the network evaluate function
-    controller_eval = """void networkEvaluate(struct control_t_n *control_n, const float *state_array) {"""
+    controller_eval = """\nvoid networkEvaluate(struct control_t_n *control_n, const float *state_array) {"""
     for code in for_loops:
         controller_eval += code
     # assignment to control_n
@@ -671,6 +903,25 @@ def generate_c_model(model: nn.Module, output_path: str, output_folder: str, tes
         f.close()
 
     return source
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--torch_model_dir', type=str, default='swarm_rl/sim2real/torch_models/single',
+                        help='Path where the policy and cfg is stored')
+    parser.add_argument('--output_dir', type=str, default='swarm_rl/sim2real/c_models',
+                        help='Where you want the c model to be saved')
+    parser.add_argument('--output_model_name', type=str, default='model.c')
+    parser.add_argument('--testing', type=lambda x: bool(strtobool(x)), default=False,
+                        help='Whether or not to save the c model in testing mode. Enable this if you want to run the '
+                             'unit test to make sure the output of the c model is the same as the pytorch model. Set '
+                             'to False if you want to output a c model that will be actually used for sim2real')
+    parser.add_argument('--model_type', type=str, 
+                        choices=['single', 'single_obst', 'multi_deepset', 'multi_obst_attention'],
+                        help='What kind of model we are working with. '
+                             'Currently only single drone models are supported.')
+    args = parser.parse_args()
+    return AttrDict(vars(args))
 
 
 if __name__ == '__main__':
