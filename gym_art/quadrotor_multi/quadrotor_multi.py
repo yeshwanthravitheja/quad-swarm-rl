@@ -107,6 +107,7 @@ class QuadrotorEnvMulti(gym.Env):
 
         # Neighbors
         neighbor_obs_size = QUADS_NEIGHBOR_OBS_TYPE[neighbor_obs_type]
+        self.neighbor_obs_type = neighbor_obs_type
 
         self.clip_neighbor_space_length = self.num_use_neighbor_obs * neighbor_obs_size
         self.clip_neighbor_space_min_box = self.observation_space.low[
@@ -234,7 +235,14 @@ class QuadrotorEnvMulti(gym.Env):
     def get_obs_neighbor_rel(self, env_id, closest_drones):
         i = env_id
         pos_neighbors_rel, vel_neighbors_rel = self.get_rel_pos_vel_item(env_id=i, indices=closest_drones[i])
-        obs_neighbor_rel = np.concatenate((pos_neighbors_rel, vel_neighbors_rel), axis=1)
+
+        if self.neighbor_obs_type == 'pos':
+            obs_neighbor_rel = np.array(pos_neighbors_rel)
+        elif self.neighbor_obs_type == 'pos_vel':
+            obs_neighbor_rel = np.concatenate((pos_neighbors_rel, vel_neighbors_rel), axis=1)
+        else:
+            raise NotImplementedError("Incorrect neighbor_obs_type")
+
         return obs_neighbor_rel
 
     def extend_obs_space(self, obs, closest_drones):
@@ -266,11 +274,16 @@ class QuadrotorEnvMulti(gym.Env):
                 rel_pos, rel_vel = self.get_rel_pos_vel_item(env_id=i, indices=indices[i])
                 rel_dist = np.linalg.norm(rel_pos, axis=1)
                 rel_dist = np.maximum(rel_dist, 0.01)
-                rel_pos_unit = rel_pos / rel_dist[:, None]
 
-                # new relative distance is a new metric that combines relative position and relative velocity
-                # the smaller the new_rel_dist, the closer the drones
-                new_rel_dist = rel_dist + np.sum(rel_pos_unit * rel_vel, axis=1)
+                if self.neighbor_obs_type == 'pos':
+                    new_rel_dist = np.array(rel_dist)
+                elif self.neighbor_obs_type == 'pos_vel':
+                    rel_pos_unit = rel_pos / rel_dist[:, None]
+                    # new relative distance is a new metric that combines relative position and relative velocity
+                    # the smaller the new_rel_dist, the closer the drones
+                    new_rel_dist = rel_dist + np.sum(rel_pos_unit * rel_vel, axis=1)
+                else:
+                    raise RuntimeError("Incorrect neighbor_obs_type")
 
                 rel_pos_index = new_rel_dist.argsort()
                 rel_pos_index = rel_pos_index[:self.num_use_neighbor_obs]

@@ -35,6 +35,7 @@ QUADS_OBS_REPR = {
 
 QUADS_NEIGHBOR_OBS_TYPE = {
     'none': 0,
+    'pos': 3,
     'pos_vel': 6,
 }
 

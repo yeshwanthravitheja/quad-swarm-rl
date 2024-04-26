@@ -28,11 +28,11 @@ def add_quadrotors_env_args(env, parser):
 
     # Neighbor
     # Neighbor Features
-    p.add_argument('--quads_neighbor_visible_num', default=-1, type=int, help='Number of neighbors to consider. -1=all '
-                                                                          '0=blind agents, '
-                                                                          '0<n<num_agents-1 = nonzero number of agents')
-    p.add_argument('--quads_neighbor_obs_type', default='none', type=str,
-                   choices=['none', 'pos_vel'], help='Choose what kind of obs to send to encoder.')
+    p.add_argument('--quads_neighbor_visible_num', default=-1, type=int,
+                   help='Number of neighbors to consider. -1=all 0=blind agents, 0<n<num_agents-1 = nonzero number of '
+                        'agents')
+    p.add_argument('--quads_neighbor_obs_type', default='none', type=str, choices=['none', 'pos', 'pos_vel'],
+                   help='Choose what kind of obs to send to encoder.')
 
     # # Neighbor Encoder
     p.add_argument('--quads_neighbor_hidden_size', default=256, type=int,

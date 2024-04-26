@@ -333,6 +333,9 @@ class QuadrotorSingle:
         self.obs_comp_sizes = [self.obs_space_low_high[name][1].size for name in self.obs_comp_names]
 
         obs_comps = self.obs_repr.split("_")
+        if self.neighbor_obs_type == 'pos' and self.num_use_neighbor_obs > 0:
+            obs_comps = obs_comps + (['rxyz']) * self.num_use_neighbor_obs
+
         if self.neighbor_obs_type == 'pos_vel' and self.num_use_neighbor_obs > 0:
             obs_comps = obs_comps + (['rxyz'] + ['rvxyz']) * self.num_use_neighbor_obs
 
