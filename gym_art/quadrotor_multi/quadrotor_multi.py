@@ -206,6 +206,7 @@ class QuadrotorEnvMulti(gym.Env):
         self.distance_to_goal_z = [[] for _ in range(len(self.envs))]
 
         self.reached_goal = [False for _ in range(len(self.envs))]
+        self.hard_reached_goal = [False for _ in range(len(self.envs))]
 
         # Log metric
         self.agent_col_agent = np.ones(self.num_agents)
@@ -433,6 +434,7 @@ class QuadrotorEnvMulti(gym.Env):
         self.agent_col_agent = np.ones(self.num_agents)
         self.agent_col_obst = np.ones(self.num_agents)
         self.reached_goal = [False for _ in range(len(self.envs))]
+        self.hard_reached_goal = [False for _ in range(len(self.envs))]
 
         # Rendering
         if self.quads_render:
@@ -575,10 +577,17 @@ class QuadrotorEnvMulti(gym.Env):
             self.distance_to_goal_xy[i].append(np.linalg.norm(obs[i][:2]))
             self.distance_to_goal_z[i].append(obs[i][2])
 
-            if len(self.distance_to_goal[i]) >= 5 and \
-                    np.mean(self.distance_to_goal[i][-5:]) / self.envs[0].dt < self.scenario.approch_goal_metric \
-                    and not self.reached_goal[i]:
+            reach_len_bool = len(self.distance_to_goal[i]) >= 5
+            reach_goal_bool = np.mean(self.distance_to_goal[i][-5:]) / self.envs[0].dt < self.scenario.approch_goal_metric
+
+            hard_reach_len_bool = len(self.distance_to_goal[i]) >= 100
+            hard_reach_goal_bool = np.mean(self.distance_to_goal[i][-100:]) / self.envs[0].dt < self.scenario.approch_goal_metric
+
+            if not self.reached_goal[i] and reach_len_bool and reach_goal_bool:
                 self.reached_goal[i] = True
+
+            if not self.hard_reached_goal[i] and hard_reach_len_bool and hard_reach_goal_bool:
+                self.hard_reached_goal[i] = True
 
         # 3. Applying random forces: 1) aerodynamics 2) between drones 3) obstacles 4) room
         self_state_update_flag = False
@@ -676,6 +685,7 @@ class QuadrotorEnvMulti(gym.Env):
                     self.distance_to_goal_z = np.array(self.distance_to_goal_z)
 
                     self.reached_goal = np.array(self.reached_goal)
+                    self.hard_reached_goal = np.array(self.hard_reached_goal)
                     infos[i]['episode_extra_stats'] = {
                         'num_collisions': self.collisions_per_episode,
                         'num_collisions_with_room': self.collisions_room_per_episode,
@@ -737,6 +747,9 @@ class QuadrotorEnvMulti(gym.Env):
                 agent_success_flag_list = np.logical_and(agent_col_flag_list, self.reached_goal)
                 agent_success_ratio = 1.0 * np.sum(agent_success_flag_list) / self.num_agents
 
+                agent_hard_success_flag_list = np.logical_and(agent_col_flag_list, self.hard_reached_goal)
+                agent_hard_success_ratio = 1.0 * np.sum(agent_hard_success_flag_list) / self.num_agents
+
                 # agent_deadlock_rate
                 # Doesn't approach to the goal while no collisions with other objects
                 agent_deadlock_list = np.logical_and(agent_col_flag_list, 1 - self.reached_goal)
@@ -755,6 +768,10 @@ class QuadrotorEnvMulti(gym.Env):
                     # agent_success_rate
                     infos[i]['episode_extra_stats']['metric/agent_success_rate'] = agent_success_ratio
                     infos[i]['episode_extra_stats'][f'{scenario_name}/agent_success_rate'] = agent_success_ratio
+
+                    infos[i]['episode_extra_stats']['metric/agent_hard_success_rate'] = agent_hard_success_ratio
+                    infos[i]['episode_extra_stats'][f'{scenario_name}/agent_hard_success_rate'] = agent_hard_success_ratio
+
                     # agent_deadlock_rate
                     infos[i]['episode_extra_stats']['metric/agent_deadlock_rate'] = agent_deadlock_ratio
                     infos[i]['episode_extra_stats'][f'{scenario_name}/agent_deadlock_rate'] = agent_deadlock_ratio
