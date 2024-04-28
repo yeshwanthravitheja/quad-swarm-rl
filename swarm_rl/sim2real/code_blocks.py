@@ -8,8 +8,7 @@ headers_controller_nn = """
 
 """
 
-headers_network_evaluate = """
-#include "network_evaluate.h"
+headers_network_evaluate = """#include "network_evaluate.h"
 
 """
 
@@ -63,13 +62,11 @@ static const int NBR_OBS_DIM = 6;
 """
 
 
-headers_evaluation = """
-#include <random>
+headers_evaluation = """#include <random>
 #include <vector>
 #include <iostream>
 #include <algorithm>
 #include <cstring> 
-
 
 typedef struct control_t_n {
 	float thrust_0;
