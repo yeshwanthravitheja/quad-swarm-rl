@@ -106,6 +106,12 @@ To run unit tests:
 ./run_tests.sh
 ```
 
+## Potential Usage of Our Simulator
+- [x] Generate diverse trajectories, and diverse state information. 
+
+- You can use these trajectories for downstream tasks, such as imitation learning, or reinforcement learning.
+
+
 ## Citation
 
 If you use this repository in your work or otherwise wish to cite it, please make reference to our CORL paper.
