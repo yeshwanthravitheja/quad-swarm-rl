@@ -8,6 +8,7 @@ import torch.nn as nn
 from attrdict import AttrDict
 from sample_factory.model.actor_critic import create_actor_critic
 
+from gym_art.quadrotor_multi.quad_utils import QUADS_NEIGHBOR_OBS_TYPE
 from swarm_rl.env_wrappers.quad_utils import make_quadrotor_env_multi
 from swarm_rl.sim2real.code_blocks import (
     headers_network_evaluate,
@@ -82,7 +83,7 @@ def load_sf_model(model_dir, model_type):
 
         c_model_names.append(c_model_name)
 
-    return models, c_model_names
+    return models, c_model_names, args
 
 
 def process_layer(name, param, layer_type):
@@ -309,68 +310,68 @@ def self_encoder_c_str(prefix: str, weight_names: List[str], bias_names: List[st
     # write the for loops for forward-prop
     for_loops = []
     input_for_loop = f'''
-        for (int i = 0; i < {prefix}_structure[0][1]; i++) {{
-            output_0[i] = 0;
-            for (int j = 0; j < {prefix}_structure[0][0]; j++) {{
-                output_0[i] += state_array[j] * {weight_names[0].replace('.', '_')}[j][i];
-            }}
-            output_0[i] += {bias_names[0].replace('.', '_')}[i];
-            output_0[i] = tanhf(output_0[i]);
+    for (int i = 0; i < {prefix}_structure[0][1]; i++) {{
+        output_0[i] = 0;
+        for (int j = 0; j < {prefix}_structure[0][0]; j++) {{
+            output_0[i] += state_array[j] * {weight_names[0].replace('.', '_')}[j][i];
         }}
-    '''
+        output_0[i] += {bias_names[0].replace('.', '_')}[i];
+        output_0[i] = tanhf(output_0[i]);
+    }}
+'''
     for_loops.append(input_for_loop)
 
     # rest of the hidden layers
     for n in range(1, num_layers - 2):
         for_loop = f'''
-            for (int i = 0; i < {prefix}_structure[{str(n)}][1]; i++) {{
-                output_{str(n)}[i] = 0;
-                for (int j = 0; j < {prefix}_structure[{str(n)}][0]; j++) {{
-                    output_{str(n)}[i] += output_{str(n - 1)}[j] * {weight_names[n].replace('.', '_')}[j][i];
-                }}
-                output_{str(n)}[i] += {bias_names[n].replace('.', '_')}[i];
-                output_{str(n)}[i] = tanhf(output_{str(n)}[i]);
-            }}
-        '''
+    for (int i = 0; i < {prefix}_structure[{str(n)}][1]; i++) {{
+        output_{str(n)}[i] = 0;
+        for (int j = 0; j < {prefix}_structure[{str(n)}][0]; j++) {{
+            output_{str(n)}[i] += output_{str(n - 1)}[j] * {weight_names[n].replace('.', '_')}[j][i];
+        }}
+        output_{str(n)}[i] += {bias_names[n].replace('.', '_')}[i];
+        output_{str(n)}[i] = tanhf(output_{str(n)}[i]);
+    }}
+'''
         for_loops.append(for_loop)
 
     # Concat self embedding and neighbor embedding
     for_loop = f'''
-        // Concat self_embed and neighbor_embed
-        for (int i = 0; i < D_SELF; i++) {{
-            output_embeds[i] = output_{num_layers - 3}[i];
-        }}
-        for (int i = 0; i < D_NBR; i++) {{
-            output_embeds[D_SELF + i] = neighbor_embeds[i];
-        }}
-    '''
+    // Concat self_embed and neighbor_embed
+    for (int i = 0; i < D_SELF; i++) {{
+        output_embeds[i] = output_{num_layers - 3}[i];
+    }}
+    for (int i = 0; i < D_NBR; i++) {{
+        output_embeds[D_SELF + i] = neighbor_embeds[i];
+    }}
+'''
     for_loops.append(for_loop)
 
     # forward-prop of feedforward layer
     output_for_loop = f'''
-        // Feedforward layer
-        for (int i = 0; i < self_structure[2][1]; i++) {{
-            output_{num_layers - 2}[i] = 0;
-            for (int j = 0; j < self_structure[2][0] ; j++) {{
-                output_{num_layers - 2}[i] += output_embeds[j] * actor_encoder_feed_forward_0_weight[j][i];
-                }}
-            output_{num_layers - 2}[i] += actor_encoder_feed_forward_0_bias[i];
-            output_{num_layers - 2}[i] = tanhf(output_2[i]);
+    // Feedforward layer
+    for (int i = 0; i < self_structure[2][1]; i++) {{
+        output_{num_layers - 2}[i] = 0;
+        for (int j = 0; j < self_structure[2][0] ; j++) {{
+            output_{num_layers - 2}[i] += output_embeds[j] * actor_encoder_feed_forward_0_weight[j][i];
         }}
-    '''
+        output_{num_layers - 2}[i] += actor_encoder_feed_forward_0_bias[i];
+        output_{num_layers - 2}[i] = tanhf(output_2[i]);
+    }}
+'''
     for_loops.append(output_for_loop)
 
     # the last hidden layer which is supposed to have no non-linearity
     n = num_layers - 1
     output_for_loop = f'''
-                for (int i = 0; i < {prefix}_structure[{str(n)}][1]; i++) {{
-                    output_{str(n)}[i] = 0;
-                    for (int j = 0; j < {prefix}_structure[{str(n)}][0]; j++) {{
-                        output_{str(n)}[i] += output_{str(n - 1)}[j] * {weight_names[n].replace('.', '_')}[j][i];
-                    }}
-                    output_{str(n)}[i] += {bias_names[n].replace('.', '_')}[i];
-                }}
-    '''
+    for (int i = 0; i < {prefix}_structure[{str(n)}][1]; i++) {{
+        output_{str(n)}[i] = 0;
+        for (int j = 0; j < {prefix}_structure[{str(n)}][0]; j++) {{
+            output_{str(n)}[i] += output_{str(n - 1)}[j] * {weight_names[n].replace('.', '_')}[j][i];
+        }}
+        output_{str(n)}[i] += {bias_names[n].replace('.', '_')}[i];
+    }}
+'''
     for_loops.append(output_for_loop)
 
     for code in for_loops:
@@ -378,11 +379,11 @@ def self_encoder_c_str(prefix: str, weight_names: List[str], bias_names: List[st
     if 'self' in prefix:
         # assign network outputs to control
         assignment = """
-                    control_n->thrust_0 = output_""" + str(n) + """[0];
-                    control_n->thrust_1 = output_""" + str(n) + """[1];
-                    control_n->thrust_2 = output_""" + str(n) + """[2];
-                    control_n->thrust_3 = output_""" + str(n) + """[3];	
-            """
+    control_n->thrust_0 = output_""" + str(n) + """[0];
+    control_n->thrust_1 = output_""" + str(n) + """[1];
+    control_n->thrust_2 = output_""" + str(n) + """[2];
+    control_n->thrust_3 = output_""" + str(n) + """[3];
+"""
         method += assignment
     # closing bracket
     method += """}\n\n"""
@@ -463,59 +464,58 @@ def self_encoder_attn_c_str(prefix: str, weight_names: List[str], bias_names: Li
 
 
 def neighbor_encoder_deepset_c_string(prefix: str, weight_names: List[str], bias_names: List[str]):
-    method = """void neighborEmbedder(const float neighbor_inputs[NEIGHBORS*NBR_OBS_DIM]) {
-    """
+    method = """void neighborEmbedder(const float neighbor_inputs[NEIGHBORS*NBR_OBS_DIM]) {"""
     num_layers = len(weight_names)
 
     # write the for loops for forward-prop
     for_loops = []
     input_for_loop = f'''
-            for (int n = 0; n < NEIGHBORS; n++) {{            
-                for (int i = 0; i < {prefix}_structure[0][1]; i++) {{
-                    {prefix}_output_0[n][i] = 0; 
-                    for (int j = 0; j < {prefix}_structure[0][0]; j++) {{
-                        {prefix}_output_0[n][i] += neighbor_inputs[n*NBR_OBS_DIM + j] * actor_encoder_neighbor_encoder_embedding_mlp_0_weight[j][i]; 
-                    }}
-                    {prefix}_output_0[n][i] += actor_encoder_neighbor_encoder_embedding_mlp_0_bias[i];
-                    {prefix}_output_0[n][i] = tanhf({prefix}_output_0[n][i]);
-                }}
+    for (int n = 0; n < NEIGHBORS; n++) {{            
+        for (int i = 0; i < {prefix}_structure[0][1]; i++) {{
+            {prefix}_output_0[n][i] = 0; 
+            for (int j = 0; j < {prefix}_structure[0][0]; j++) {{
+                {prefix}_output_0[n][i] += neighbor_inputs[n*NBR_OBS_DIM + j] * actor_encoder_neighbor_encoder_embedding_mlp_0_weight[j][i]; 
             }}
-    '''
+            {prefix}_output_0[n][i] += actor_encoder_neighbor_encoder_embedding_mlp_0_bias[i];
+            {prefix}_output_0[n][i] = tanhf({prefix}_output_0[n][i]);
+        }}
+    }}
+'''
     for_loops.append(input_for_loop)
 
     # hidden layers
     for n in range(1, num_layers):
         for_loop = f'''
-            for (int n = 0; n < NEIGHBORS; n++) {{
-                for (int i = 0; i < {prefix}_structure[{str(n)}][1]; i++) {{
-                    {prefix}_output_{str(n)}[n][i] = 0;
-                    for (int j = 0; j < {prefix}_structure[{str(n)}][0]; j++) {{
-                        {prefix}_output_{str(n)}[n][i] += {prefix}_output_{str(n - 1)}[n][j] * {weight_names[n].replace('.', '_')}[j][i];
-                    }}
-                    {prefix}_output_{str(n)}[n][i] += {bias_names[n].replace('.', '_')}[i];
-                    {prefix}_output_{str(n)}[n][i] = tanhf({prefix}_output_{str(n)}[n][i]);
-                }}
+    for (int n = 0; n < NEIGHBORS; n++) {{
+        for (int i = 0; i < {prefix}_structure[{str(n)}][1]; i++) {{
+            {prefix}_output_{str(n)}[n][i] = 0;
+            for (int j = 0; j < {prefix}_structure[{str(n)}][0]; j++) {{
+                {prefix}_output_{str(n)}[n][i] += {prefix}_output_{str(n - 1)}[n][j] * {weight_names[n].replace('.', '_')}[j][i];
             }}
-        '''
+            {prefix}_output_{str(n)}[n][i] += {bias_names[n].replace('.', '_')}[i];
+            {prefix}_output_{str(n)}[n][i] = tanhf({prefix}_output_{str(n)}[n][i]);
+        }}
+    }}
+'''
         for_loops.append(for_loop)
 
     # Average the neighbor embeddings
     for_loop = f'''
-            // Average over number of neighbors
-            for (int i = 0; i < D_NBR; i++) {{
-                neighbor_embeds[i] = 0;
-                for (int n = 0; n < NEIGHBORS; n++) {{
-                    neighbor_embeds[i] += {prefix}_output_{str(num_layers - 1)}[n][i];
-                }}
-                neighbor_embeds[i] /= NEIGHBORS;
-            }}
-    '''
+    // Average over number of neighbors
+    for (int i = 0; i < D_NBR; i++) {{
+        neighbor_embeds[i] = 0;
+        for (int n = 0; n < NEIGHBORS; n++) {{
+            neighbor_embeds[i] += {prefix}_output_{str(num_layers - 1)}[n][i];
+        }}
+        neighbor_embeds[i] /= NEIGHBORS;
+    }}
+'''
     for_loops.append(for_loop)
 
     for code in for_loops:
         method += code
     # method closing bracket
-    method += """}\n\n"""
+    method += """}\n"""
     return method
 
 
@@ -708,13 +708,13 @@ def generate_c_model_attention(model: nn.Module, output_path: str, output_folder
     return source
 
 
-def generate_c_model_multi_deepset(model: nn.Module, output_path: str, output_folder: str, testing=False):
+def generate_c_model_multi_deepset(model: nn.Module, output_path: str, output_folder: str, testing=False, cfg=None):
     """
         Generate c model for the multi-agent deepset model
     """
     model_state_dict = model.state_dict()
-    for name, param in model_state_dict.items():
-        print(name, param.shape)
+    # for name, param in model_state_dict.items():
+    #     print(name, param.shape)
 
     infos = generate_c_weights_multi_deepset(model, transpose=True)
     model_state_dict = model.state_dict()
@@ -746,7 +746,7 @@ def generate_c_model_multi_deepset(model: nn.Module, output_path: str, output_fo
             method = neighbor_encoder_deepset_c_string(enc_name, weight_names, bias_names)
         methods += method
 
-    structures += """\n
+    structures += """
 static const int D_SELF = self_structure[1][1];
 static const int D_NBR = nbr_structure[1][1];
 
@@ -759,10 +759,17 @@ static float output_embeds[D_SELF + D_NBR];
     # headers
     source += headers_network_evaluate if not testing else headers_multi_deepset_evaluation
 
+    if testing:
+        neighbor_obs_info = f"""static const int NEIGHBORS = {cfg.quads_neighbor_visible_num};
+static const int NBR_OBS_DIM = {QUADS_NEIGHBOR_OBS_TYPE[cfg.quads_neighbor_obs_type]};
+
+"""
+        source += neighbor_obs_info
+
     # helper funcs
-    source += linear_activation
-    source += sigmoid_activation
-    source += relu_activation
+    # source += linear_activation
+    # source += sigmoid_activation
+    # source += relu_activation
 
     # network eval func
     source += structures

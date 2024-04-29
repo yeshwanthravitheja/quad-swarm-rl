@@ -39,13 +39,11 @@ float base;
 float exponent;
 """
 
-headers_multi_deepset_evaluation = """
-#include <random>
+headers_multi_deepset_evaluation = """#include <random>
 #include <vector>
 #include <iostream>
 #include <algorithm>
 #include <cstring> 
-
 
 typedef struct control_t_n {
 	float thrust_0;
@@ -56,11 +54,7 @@ typedef struct control_t_n {
 
 void networkEvaluate(control_t_n* control_n, const float* state_array);
 
-static const int NEIGHBORS = 2;
-static const int NBR_OBS_DIM = 6; 
-
 """
-
 
 headers_evaluation = """#include <random>
 #include <vector>
@@ -77,11 +71,11 @@ typedef struct control_t_n {
 
 void networkEvaluate(control_t_n* control_n, const float* state_array);
 
-static const int NEIGHBORS = 6;
-static const int NBR_OBS_DIM = 6; 
-
-static const int NUM_OBSTACLES = 2; 
-static const int OBST_DIM = 9;
+# static const int NEIGHBORS = 2;
+# static const int NBR_OBS_DIM = 6; 
+# 
+# static const int NUM_OBSTACLES = 2; 
+# static const int OBST_DIM = 9;
 
 """
 
@@ -421,9 +415,7 @@ int main(const float *indatav, size_t size, float *outdatav)
 """
 
 multi_drone_deepset_eval = """
-
-int main(const float *self_indatav, const float *nbr_indatav, float *outdatav)
-{
+int main(const float *self_indatav, const float *nbr_indatav, float *outdatav){
     size_t i;
     control_t_n motorThrusts;
 
@@ -437,7 +429,6 @@ int main(const float *self_indatav, const float *nbr_indatav, float *outdatav)
     outdatav[3] = motorThrusts.thrust_3;
     return EXIT_SUCCESS;
 }
-
 """
 
 multi_drone_attn_eval = """

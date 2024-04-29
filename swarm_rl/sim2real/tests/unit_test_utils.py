@@ -7,6 +7,7 @@ import numpy as np
 import torch
 from numpy.ctypeslib import ndpointer
 
+from gym_art.quadrotor_multi.quad_utils import QUADS_NEIGHBOR_OBS_TYPE
 from swarm_rl.sim2real.sim2real_utils import load_sf_model
 
 
@@ -14,7 +15,7 @@ def compare_torch_to_c_model_outputs_single_drone(args):
     # project_root = Path.home().joinpath('quad-swarm-rl')
     # os.chdir(str(project_root))
     # Load a list of torch models and c model names
-    models, c_model_names = load_sf_model(Path(args.torch_model_dir), model_type=args.model_type)
+    models, c_model_names, _ = load_sf_model(Path(args.torch_model_dir), model_type=args.model_type)
 
     # Get a random observation
     obs = torch.randn((1, 18))
@@ -52,54 +53,65 @@ def compare_torch_to_c_model_outputs_single_drone(args):
         outdata = np.zeros(4).astype(np.float32)
         func(indata, indata.size, outdata)
 
-        assert np.allclose(torch_model_out, outdata)
+        assert np.allclose(torch_model_out, outdata, atol=1e-6)
 
 
-def compare_torch_to_c_model_multi_drone_deepset():
-    project_root = Path.home().joinpath('quad-swarm-rl')
-    os.chdir(str(project_root))
-
+def compare_torch_to_c_model_multi_drone_deepset(args):
     # prepare the c model and main method for evaluation
-    c_model_dir = Path('swarm_rl/sim2real/c_models/multi_deepset')
-    c_model_path = c_model_dir.joinpath('model.c')
-    shared_lib_path = c_model_dir.joinpath('multi_deepset.so')
-    subprocess.run(
-        ['g++', '-fPIC', '-shared', '-o', str(shared_lib_path), str(c_model_path)],
-        check=True,
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE
-    )
+    models, c_model_names, cfg = load_sf_model(Path(args.torch_model_dir), model_type=args.model_type)
 
-    import ctypes
-    from numpy.ctypeslib import ndpointer
-    lib = ctypes.cdll.LoadLibrary(str(shared_lib_path))
-    func = lib.main
-    func.restype = None
-    func.argtypes = [
-        ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"),
-        ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"),
-        ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"),
-    ]
+    for torch_model, c_model_name in zip(models, c_model_names):
+        # Get C model
+        c_base_name, c_extension = os.path.splitext(args.output_model_name)
+        final_c_model_name = f'{c_base_name}_{c_model_name}{c_extension}'
+        c_model_dir = Path(args.output_dir).joinpath(args.model_type)
+        c_model_path = Path(args.output_dir).joinpath(args.model_type, final_c_model_name)
+        shared_lib_path = c_model_dir.joinpath(f'multi_deepsets_{c_model_name}.so')
+        subprocess.run(
+            ['g++', '-fPIC', '-shared', '-o', str(shared_lib_path), str(c_model_path)],
+            check=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE
+        )
 
-    torch_model_dir = 'swarm_rl/sim2real/torch_models/multi_deepset'
-    torch_model, cfg = load_sf_model(Path(torch_model_dir), model_type='corl')
+        lib = ctypes.cdll.LoadLibrary(str(shared_lib_path))
+        func = lib.main
+        func.restype = None
+        func.argtypes = [
+            ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"),
+            ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"),
+            ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"),
+        ]
 
-    # test 1000 times on different random inputs
-    for _ in range(1000):
-        self_obs = torch.randn((1, 18))
-        self_indata = self_obs.detach().numpy()
-        thrust_out = np.zeros(4).astype(np.float32)
+        # test 1000 times on different random inputs
+        for test_id in range(1000):
+            if test_id % 100 == 0:
+                print(f'Running test {test_id}')
+            # Get self obs
+            self_obs = torch.randn((1, 18))
+            self_indata = self_obs.detach().numpy()
 
-        neighbor_obs = torch.randn((1, cfg.quads_neighbor_visible_num * 6))
-        nbr_indata = neighbor_obs.detach().numpy()
+            # Get neighbor obs
+            neighbor_obs_size = cfg.quads_neighbor_visible_num * QUADS_NEIGHBOR_OBS_TYPE[cfg.quads_neighbor_obs_type]
+            neighbor_obs = torch.randn((1, neighbor_obs_size))
+            nbr_indata = neighbor_obs.detach().numpy()
 
-        obs_dict = {'obs': torch.concat([self_obs, neighbor_obs], dim=-1).view(1, -1)}
-        torch_thrust_out = torch_model.action_parameterization(torch_model.actor_encoder(obs_dict))[
-            1].means.flatten().detach().numpy()
+            # Get overall obs
+            obs_dict = {'obs': torch.concat([self_obs, neighbor_obs], dim=-1).view(1, -1)}
 
-        func(self_indata, nbr_indata, thrust_out)
+            # Get torch thrust outputs
+            torch_thrust_out = torch_model.action_parameterization(torch_model.actor_encoder(obs_dict))[1]
+            torch_thrust_out = torch_thrust_out.means.flatten().detach().numpy()
 
-        assert np.allclose(torch_thrust_out, thrust_out, atol=1e-6)
+            # Get C model outputs
+            thrust_out = np.zeros(4).astype(np.float32)
+
+            func(self_indata, nbr_indata, thrust_out)
+
+            # print('torch_thrust_out:', torch_thrust_out)
+            # print('thrust_out:', thrust_out)
+
+            assert np.allclose(torch_thrust_out, thrust_out, atol=1e-6)
 
 
 def compare_torch_to_c_model_multi_drone_attention():

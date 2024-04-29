@@ -2,7 +2,9 @@ import argparse
 import sys
 from attrdict import AttrDict
 
-from swarm_rl.sim2real.tests.unit_test_utils import compare_torch_to_c_model_outputs_single_drone
+from swarm_rl.sim2real.tests.unit_test_utils import (compare_torch_to_c_model_outputs_single_drone,
+                                                     compare_torch_to_c_model_multi_drone_deepset,
+                                                     compare_torch_to_c_model_multi_drone_attention)
 
 
 def parse_args():
@@ -32,9 +34,15 @@ def parse_args():
 
 def main():
     args = parse_args()
-    compare_torch_to_c_model_outputs_single_drone(args=args)
-    # compare_torch_to_c_model_multi_drone_deepset()
-    # compare_torch_to_c_model_multi_drone_attention()
+    if args.model_type == 'single':
+        compare_torch_to_c_model_outputs_single_drone(args=args)
+    elif args.model_type == 'multi_deepset':
+        compare_torch_to_c_model_multi_drone_deepset(args=args)
+    elif args.model_type == 'multi_obst_attention':
+        compare_torch_to_c_model_multi_drone_attention()
+    else:
+        raise NotImplementedError(f'Model type {args.model_type} is not supported')
+
     print('Pass Unit Test!')
 
 
