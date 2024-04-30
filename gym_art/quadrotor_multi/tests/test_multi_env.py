@@ -4,6 +4,7 @@ import numpy as np
 
 from gym_art.quadrotor_multi.quad_experience_replay import ExperienceReplayWrapper
 from gym_art.quadrotor_multi.quadrotor_multi import QuadrotorEnvMulti
+from swarm_rl.env_wrappers.reward_shaping import DEFAULT_QUAD_REWARD_SHAPING
 
 
 def create_env(num_agents, use_numba=False, use_replay_buffer=False, episode_duration=7, local_obs=-1):
@@ -23,13 +24,17 @@ def create_env(num_agents, use_numba=False, use_replay_buffer=False, episode_dur
     dynamics_change = dict(noise=dict(thrust_noise_ratio=0.05), damp=dict(vel=0, omega_quadratic=0))
 
     env = QuadrotorEnvMulti(
-        num_agents=num_agents,
+        num_agents=num_agents, ep_time=episode_duration, rew_coeff=DEFAULT_QUAD_REWARD_SHAPING['quad_rewards'],
+        obs_repr='xyz_vxyz_R_omega', obs_rel_rot=False, neighbor_visible_num=local_obs, neighbor_obs_type='pos_vel',
+        collision_hitbox_radius=2.0, collision_falloff_radius=-1.0, use_obstacles=True, obst_density=0.2, obst_size=0.3,
+        obst_spawn_area=[6.0, 6.0], obst_obs_type='ToFs', obst_noise=0.0, grid_size=1.0,
+        use_downwash=False, use_numba=use_numba, quads_mode='o_random', room_dims=[10., 10., 5.],
+        use_replay_buffer=use_replay_buffer, quads_view_mode=['topdown', 'chase', 'global'], quads_render=True,
+
         dynamics_params=quad, raw_control=raw_control, raw_control_zero_middle=raw_control_zero_middle,
         dynamics_randomize_every=dyn_randomize_every, dynamics_change=dynamics_change, dyn_sampler_1=sampler_1,
-        sense_noise=sense_noise, init_random_state=True, ep_time=episode_duration, quads_use_numba=use_numba,
-        use_replay_buffer=use_replay_buffer,
-        swarm_obs="pos_vel_goals_ndist_gdist",
-        local_obs=local_obs,
+        sense_noise=sense_noise, init_random_state=True,
+        render_mode='human',
     )
     return env
 
@@ -102,7 +107,7 @@ class TestReplayBuffer(TestCase):
         replay_buffer_sample_prob = 1.0
         env = create_env(num_agents, use_numba=False, use_replay_buffer=replay_buffer_sample_prob > 0, episode_duration=5)
         env.render_speed = 1.0
-        env = ExperienceReplayWrapper(env, replay_buffer_sample_prob=replay_buffer_sample_prob)
+        env = ExperienceReplayWrapper(env, replay_buffer_sample_prob=replay_buffer_sample_prob, default_obst_density=0.2, defulat_obst_size=0.3)
 
         env.reset()
         time.sleep(0.01)
