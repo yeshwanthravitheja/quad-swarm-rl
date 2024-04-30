@@ -59,10 +59,17 @@ def load_sf_model(model_dir, model_type):
 
     # Load model
     register_swarm_components()
-    # spawn a dummy env, so we can get the obs and action space info
+    # Spawn a dummy env, so we can get the obs and action space info
     env = make_quadrotor_env_multi(args)
+    # Get checkpoints under checkpoint_p0
     checkpoint_dir = Path(os.path.join(model_dir, 'checkpoint_p0'))
-    model_paths = list(checkpoint_dir.glob('*.pth'))
+    model_paths_1 = list(checkpoint_dir.glob('*.pth'))
+
+    # Get checkpoints under checkpoint_p0/milestones
+    milestone_dir = Path(os.path.join(model_dir, 'checkpoint_p0/milestones'))
+    model_paths_2 = list(milestone_dir.glob('*.pth'))
+
+    model_paths = model_paths_1 + model_paths_2
 
     models = []
     c_model_names = []

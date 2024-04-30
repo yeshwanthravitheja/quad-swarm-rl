@@ -10,29 +10,36 @@ from swarm_rl.sim2real.sim2real_utils import generate_c_model, generate_c_model_
 
 
 def torch_to_c_model(args):
-    model_dir = Path(args.torch_model_dir)
-    # Load a list of model
-    models, c_model_names, cfg = load_sf_model(model_dir, args.model_type)
-    output_dir = Path(args.output_dir)
+    parent_model_dir = Path(args.torch_model_dir)
+    sub_model_dir_list = [name for name in os.listdir(parent_model_dir) if os.path.isdir(os.path.join(parent_model_dir, name))]
+    for i in range(len(sub_model_dir_list)):
+        model_dir = parent_model_dir.joinpath(sub_model_dir_list[i])
 
-    c_base_name, c_extension = os.path.splitext(args.output_model_name)
-    output_folder = None
-    for model, c_model_name in zip(models, c_model_names):
-        final_c_model_name = f'{c_base_name}_{c_model_name}{c_extension}'
+        # Load a list of model
+        models, c_model_names, cfg = load_sf_model(model_dir, args.model_type)
+        output_dir = Path(args.output_dir)
 
-        output_path = output_dir.joinpath(args.model_type, final_c_model_name)
-        output_folder = output_dir.joinpath(args.model_type)
+        c_base_name, c_extension = os.path.splitext(args.output_model_name)
+        output_folder = None
+        for model, c_model_name in zip(models, c_model_names):
+            final_c_model_name = f'{c_base_name}_{c_model_name}{c_extension}'
 
-        if args.model_type == 'single':
-            generate_c_model(model, str(output_path), str(output_folder), testing=args.testing)
-        elif args.model_type == 'multi_deepset':
-            generate_c_model_multi_deepset(model, str(output_path), str(output_folder), testing=args.testing, cfg=cfg)
-        elif args.model_type == 'multi_obst_attn':
-            generate_c_model_attention(model, str(output_path), str(output_folder), testing=args.testing)
-        else:
-            raise NotImplementedError(f'Model type {args.model_type} is not supported')
+            output_folder = output_dir.joinpath(args.model_type, os.path.join(model_dir.parts[1], model_dir.parts[2]))
+            output_path = output_folder.joinpath(final_c_model_name)
 
-    print(f'Successfully generated c model at {output_folder}')
+            if not os.path.exists(output_folder):
+                os.makedirs(output_folder)
+
+            if args.model_type == 'single':
+                generate_c_model(model, str(output_path), str(output_folder), testing=args.testing)
+            elif args.model_type == 'multi_deepset':
+                generate_c_model_multi_deepset(model, str(output_path), str(output_folder), testing=args.testing, cfg=cfg)
+            elif args.model_type == 'multi_obst_attn':
+                generate_c_model_attention(model, str(output_path), str(output_folder), testing=args.testing)
+            else:
+                raise NotImplementedError(f'Model type {args.model_type} is not supported')
+
+        print(f'Successfully generated c model at {output_folder}')
 
 
 def parse_args():
