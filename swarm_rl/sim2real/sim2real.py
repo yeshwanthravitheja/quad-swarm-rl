@@ -5,11 +5,14 @@ from pathlib import Path
 
 from attrdict import AttrDict
 
-from swarm_rl.sim2real.sim2real_utils import generate_c_model, generate_c_model_multi_deepset, \
-    generate_c_model_attention, load_sf_model
+from swarm_rl.sim2real.generate_single_with_obst import generate_c_model_single_obst
+from swarm_rl.sim2real.sim2real_utils import load_sf_model
+from swarm_rl.sim2real.generate_single_no_obst import generate_c_model
+from swarm_rl.sim2real.generate_multi_no_obst import generate_c_model_multi_deepset
+from swarm_rl.sim2real.generate_multi_drone_with_obst import generate_c_model_attention
 
 
-def torch_to_c_model(args):
+def torch_to_c_model(args=None):
     parent_model_dir = Path(args.torch_model_dir)
     sub_model_dir_list = [name for name in os.listdir(parent_model_dir) if os.path.isdir(os.path.join(parent_model_dir, name))]
     for i in range(len(sub_model_dir_list)):
@@ -34,6 +37,8 @@ def torch_to_c_model(args):
                 generate_c_model(model, str(output_path), str(output_folder), testing=args.testing)
             elif args.model_type == 'multi_deepset':
                 generate_c_model_multi_deepset(model, str(output_path), str(output_folder), testing=args.testing, cfg=cfg)
+            elif args.model_type == 'single_obst':
+                generate_c_model_single_obst(model, str(output_path), str(output_folder), testing=args.testing, cfg=cfg)
             elif args.model_type == 'multi_obst_attn':
                 generate_c_model_attention(model, str(output_path), str(output_folder), testing=args.testing)
             else:
@@ -83,5 +88,5 @@ if __name__ == '__main__':
     # })
     # torch_to_c_model(cfg)
 
-    cfg = parse_args()
-    torch_to_c_model(args=cfg)
+    configs = parse_args()
+    torch_to_c_model(args=configs)
