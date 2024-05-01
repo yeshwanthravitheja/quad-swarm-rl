@@ -37,7 +37,7 @@ class TestQuads(TestCase):
 
         env_name = 'quadrotor_multi'
         experiment_name = 'test_multi'
-        cfg = parse_swarm_cfg(argv=["--algo=APPO", f"--env={env_name}", f"--experiment={experiment_name}"])
+        cfg = parse_swarm_cfg(argv=["--algo=APPO", f"--env={env_name}", f"--experiment={experiment_name}", f"--quads_neighbor_obs_type=pos_vel"])
         self.assertIsNotNone(create_env(env_name, cfg=cfg))
         run_multi_quadrotor_env(env_name, cfg)
 
@@ -47,7 +47,7 @@ class TestQuads(TestCase):
 
         env_name = 'quadrotor_multi'
         experiment_name = 'test_numba'
-        cfg = parse_swarm_cfg(argv=["--algo=APPO", f"--env={env_name}", f"--experiment={experiment_name}"])
+        cfg = parse_swarm_cfg(argv=["--algo=APPO", f"--env={env_name}", f"--experiment={experiment_name}", f"--quads_neighbor_obs_type=pos_vel"])
         cfg.quads_use_numba = True
         self.assertIsNotNone(create_env(env_name, cfg=cfg))
         run_multi_quadrotor_env(env_name, cfg)
