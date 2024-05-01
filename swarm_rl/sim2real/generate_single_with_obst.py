@@ -115,7 +115,7 @@ def generate_c_model_single_obst(model, output_path, output_folder, testing=Fals
 
 def generate_c_weights(model, transpose=False):
     """
-        Generate c friendly weight strings for the c version of the single drone model
+        Generate c friendly weight strings for the c version of the single drone model, with obstacles
     """
     weights, biases = [], []
     layer_names, bias_names, outputs = [], [], []
