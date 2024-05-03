@@ -1,7 +1,7 @@
 import os
 
 from gym_art.quadrotor_multi.quad_utils import QUADS_NEIGHBOR_OBS_TYPE
-from swarm_rl.sim2real.code_blocks import headers_network_evaluate, headers_multi_deepset_evaluation, \
+from swarm_rl.sim2real.code_blocks import headers_multi_agent_mean_embed, headers_multi_deepset_evaluation, \
     multi_drone_deepset_eval
 from swarm_rl.sim2real.sim2real_utils import process_layer
 
@@ -18,14 +18,22 @@ def generate_c_model_multi_deepset(model, output_path, output_folder, testing=Fa
     methods = ""
 
     # setup all the encoders
+    encoder_counter = 0
+    d_val = [0, 0]
     for enc_name, data in infos['encoders'].items():
         # data contains [weight_names, bias_names, weights, biases]
         structure = f'static const int {enc_name}_structure [' + str(int(len(data[0]))) + '][2] = {'
 
         weight_names, bias_names = data[0], data[1]
+        count = 0
         for w_name, b_name in zip(weight_names, bias_names):
             w = model_state_dict[w_name].T
             structure += '{' + str(w.shape[0]) + ', ' + str(w.shape[1]) + '},'
+
+            if count == 1:
+                d_val[encoder_counter] = w.shape[1]
+
+            count += 1
 
         # complete the structure array
         # get rid of the comma after the last curly bracket
@@ -40,9 +48,11 @@ def generate_c_model_multi_deepset(model, output_path, output_folder, testing=Fa
             method = neighbor_encoder_deepset_c_string(enc_name, weight_names, bias_names)
         methods += method
 
-    structures += """
-static const int D_SELF = self_structure[1][1];
-static const int D_NBR = nbr_structure[1][1];
+        encoder_counter += 1
+
+    structures += f"""
+define D_SELF {d_val[0]} // self_structure[1][1]
+define D_NBR {d_val[1]} // self_structure[1][1]
 
 static float neighbor_embeds[D_NBR];
 static float output_embeds[D_SELF + D_NBR];
@@ -51,7 +61,7 @@ static float output_embeds[D_SELF + D_NBR];
 
     # Source code: headers + helper funcs + structures + methods
     # headers
-    source += headers_network_evaluate if not testing else headers_multi_deepset_evaluation
+    source += headers_multi_agent_mean_embed if not testing else headers_multi_deepset_evaluation
 
     if testing:
         neighbor_obs_info = f"""static const int NEIGHBORS = {cfg.quads_neighbor_visible_num};
@@ -251,7 +261,7 @@ def self_encoder_c_str(prefix, weight_names, bias_names):
 
 
 def neighbor_encoder_deepset_c_string(prefix, weight_names, bias_names):
-    method = """void neighborEmbedder(const float neighbor_inputs[NEIGHBORS*NBR_OBS_DIM]) {"""
+    method = """void neighborEmbedder(float neighbor_inputs[NEIGHBORS*NBR_OBS_DIM]) {"""
     num_layers = len(weight_names)
 
     # write the for loops for forward-prop

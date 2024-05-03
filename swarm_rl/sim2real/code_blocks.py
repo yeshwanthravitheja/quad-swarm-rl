@@ -12,6 +12,10 @@ headers_network_evaluate = """#include "network_evaluate.h"
 
 """
 
+headers_multi_agent_mean_embed = """#include "network_evaluate_tof.h"
+
+"""
+
 headers_multi_agent_attention = """
 // attention stuff
 static const int D_MODEL = 16;
