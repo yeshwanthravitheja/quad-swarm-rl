@@ -45,14 +45,14 @@ def generate_c_model_multi_deepset(model, output_path, output_folder, testing=Fa
         if 'self' in enc_name:
             method = self_encoder_c_str(enc_name, weight_names, bias_names)
         elif 'nbr' in enc_name:
-            method = neighbor_encoder_deepset_c_string(enc_name, weight_names, bias_names)
+            method = neighbor_encoder_deepset_c_string(enc_name, weight_names, bias_names, testing=testing)
         methods += method
 
         encoder_counter += 1
 
     structures += f"""
-define D_SELF {d_val[0]} // self_structure[1][1]
-define D_NBR {d_val[1]} // self_structure[1][1]
+#define D_SELF {d_val[0]} // self_structure[1][1]
+#define D_NBR {d_val[1]} // self_structure[1][1]
 
 static float neighbor_embeds[D_NBR];
 static float output_embeds[D_SELF + D_NBR];
@@ -260,8 +260,11 @@ def self_encoder_c_str(prefix, weight_names, bias_names):
     return method
 
 
-def neighbor_encoder_deepset_c_string(prefix, weight_names, bias_names):
-    method = """void neighborEmbedder(float neighbor_inputs[NEIGHBORS*NBR_OBS_DIM]) {"""
+def neighbor_encoder_deepset_c_string(prefix, weight_names, bias_names, testing):
+    if testing:
+        method = """void neighborEmbedder(const float neighbor_inputs[NEIGHBORS*NBR_OBS_DIM]) {"""
+    else:
+        method = """void neighborEmbedder(float neighbor_inputs[NEIGHBORS*NBR_OBS_DIM]) {"""
     num_layers = len(weight_names)
 
     # write the for loops for forward-prop
