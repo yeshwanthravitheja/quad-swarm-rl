@@ -276,7 +276,7 @@ class QuadLink(object):
 
         # Recomputing the center of mass of the new system of bodies
         masses = [link.m for link in self.links]
-        self.com = sum([ masses[i] * pose.xyz for i, pose in enumerate(self.poses)]) / self.m
+        self.com = sum([masses[i] * pose.xyz for i, pose in enumerate(self.poses)]) / self.m
 
         # Recomputing corrections on posess with the respect to the new system
         # self.poses_init = ujson.loads(ujson.dumps(self.poses))
