@@ -55,6 +55,62 @@ def compare_torch_to_c_model_outputs_single_drone(args):
 
         assert np.allclose(torch_model_out, outdata, atol=1e-6)
 
+def compare_torch_to_c_model_outputs_single_obst(args):
+    # prepare the c model and main method for evaluation
+    parent_model_dir = Path(args.torch_model_dir)
+    sub_model_dir_list = [name for name in os.listdir(parent_model_dir) if
+                          os.path.isdir(os.path.join(parent_model_dir, name))]
+    for i in range(len(sub_model_dir_list)):
+        model_dir = parent_model_dir.joinpath(sub_model_dir_list[i])
+
+        models, c_model_names, cfg = load_sf_model(model_dir, model_type=args.model_type)
+
+        for torch_model, c_model_name in zip(models, c_model_names):
+            # Get C model
+            c_base_name, c_extension = os.path.splitext(args.output_model_name)
+            final_c_model_name = f'{c_base_name}_{c_model_name}{c_extension}'
+            c_model_dir = Path(args.output_dir).joinpath(args.model_type, model_dir.parts[1], model_dir.parts[2])
+            c_model_path = c_model_dir.joinpath(final_c_model_name)
+            shared_lib_path = c_model_dir.joinpath(f'single_obst_{c_model_name}.so')
+
+            subprocess.run(
+                ['g++', '-fPIC', '-shared', '-o', str(shared_lib_path), str(c_model_path)],
+                check=True,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE
+            )
+
+            import ctypes
+            from numpy.ctypeslib import ndpointer
+            lib = ctypes.cdll.LoadLibrary(str(shared_lib_path))
+            func = lib.main
+            func.restype = None
+            func.argtypes = [
+                ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"),
+                ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"),
+                ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"),
+                ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"),
+            ]
+
+            # test 1000 times on different random inputs
+            for _ in range(1000):
+                # check the obstacle encoder outputs
+                obstacle_obs = torch.rand(16)
+                torch_obstacle_out = torch_model.actor_encoder.obstacle_encoder(obstacle_obs).detach().numpy()
+                obst_indata = obstacle_obs.detach().numpy()
+                obst_outdata = np.zeros(4).astype(np.float32)  # TODO: make this cfg.rnn_size instead of hardcoded
+
+                self_obs = torch.randn(18)
+                self_indata = self_obs.detach().numpy()
+                obs_dict = {'obs': torch.concat([self_obs, obstacle_obs]).view(1, -1)}
+                torch_thrust_out = torch_model.action_parameterization(torch_model.actor_encoder(obs_dict))[
+                    1].means.flatten().detach().numpy()
+                thrust_out = np.zeros(4).astype(np.float32)
+
+                func(self_indata, obst_indata, obst_outdata, thrust_out)
+
+                assert np.allclose(torch_obstacle_out, obst_outdata, atol=1e-6)
+                assert np.allclose(torch_thrust_out, thrust_out, atol=1e-6)
 
 def compare_torch_to_c_model_multi_drone_deepset(args):
     # prepare the c model and main method for evaluation

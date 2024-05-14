@@ -16,6 +16,17 @@ headers_multi_agent_mean_embed = """#include "network_evaluate_tof.h"
 
 """
 
+headers_single_obst = """
+#define EPS 0.000001 // 1e-6
+#define OBST_DIM 16
+
+static float obstacle_embeds[4];
+static float output_embeds[20];
+
+float base;
+float exponent;
+"""
+
 headers_multi_agent_attention = """
 // attention stuff
 static const int D_MODEL = 16;
@@ -75,11 +86,11 @@ typedef struct control_t_n {
 
 void networkEvaluate(control_t_n* control_n, const float* state_array);
 
-# static const int NEIGHBORS = 2;
-# static const int NBR_OBS_DIM = 6; 
-# 
-# static const int NUM_OBSTACLES = 2; 
-# static const int OBST_DIM = 9;
+// static const int NEIGHBORS = 2;
+// static const int NBR_OBS_DIM = 6; 
+ 
+// static const int NUM_OBSTACLES = 2; 
+// static const int OBST_DIM = 9;
 
 """
 
@@ -426,6 +437,27 @@ int main(const float *self_indatav, const float *nbr_indatav, float *outdatav){
     neighborEmbedder(nbr_indatav);
     
     networkEvaluate(&motorThrusts, self_indatav);
+
+    outdatav[0] = motorThrusts.thrust_0;
+    outdatav[1] = motorThrusts.thrust_1;
+    outdatav[2] = motorThrusts.thrust_2;
+    outdatav[3] = motorThrusts.thrust_3;
+    return EXIT_SUCCESS;
+}
+"""
+
+single_drone_obst_eval = """
+int main(const float *self_indatav, const float *obst_indatav, float *obst_outdata, float *outdatav){
+    size_t i;
+    control_t_n motorThrusts;
+
+    obstacleEmbedder(obst_indatav);
+
+    networkEvaluate(&motorThrusts, self_indatav);
+    
+    for (int i = 0; i < 4; i++) {
+        obst_outdata[i] = obstacle_embeds[i];
+    }
 
     outdatav[0] = motorThrusts.thrust_0;
     outdatav[1] = motorThrusts.thrust_1;

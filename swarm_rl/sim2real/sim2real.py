@@ -38,7 +38,7 @@ def torch_to_c_model(args=None):
             elif args.model_type == 'multi_deepset':
                 generate_c_model_multi_deepset(model, str(output_path), str(output_folder), testing=args.testing, cfg=cfg)
             elif args.model_type == 'single_obst':
-                generate_c_model_single_obst(model, str(output_path), str(output_folder), testing=args.testing, cfg=cfg)
+                generate_c_model_single_obst(model, str(output_path), str(output_folder), testing=args.testing)
             elif args.model_type == 'multi_obst_attn':
                 generate_c_model_attention(model, str(output_path), str(output_folder), testing=args.testing)
             else:
