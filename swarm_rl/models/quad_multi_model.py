@@ -324,9 +324,9 @@ class QuadMultiEncoder(Encoder):
         if self.use_obstacles:
             if cfg.quads_obstacle_obs_type == 'ToFs':
                 if cfg.quads_obstacle_tof_resolution == 4:
-                    self.obstacle_obs_dim = QUADS_OBSTACLE_OBS_TYPE['ToFs_4']
+                    obstacle_obs_dim = QUADS_OBSTACLE_OBS_TYPE['ToFs_4']
                 elif cfg.quads_obstacle_tof_resolution == 8:
-                    self.obstacle_obs_dim = QUADS_OBSTACLE_OBS_TYPE['ToFs_8']
+                    obstacle_obs_dim = QUADS_OBSTACLE_OBS_TYPE['ToFs_8']
                 else:
                     raise NotImplementedError(
                         f'Obstacle TOF resolution {cfg.quads_obstacle_tof_resolution} not supported!')
