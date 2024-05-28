@@ -10,7 +10,7 @@ _params = ParamGrid(
 )
 
 OBSTACLE_MODEL_CLI = QUAD_BASELINE_CLI_8 + (
-    ' --num_envs_per_worker=16 --rnn_size=16 --quads_obs_repr=xyz_vxyz_R_omega --quads_obs_rel_rot=True '
+    ' --num_envs_per_worker=32 --rnn_size=16 --quads_obs_repr=xyz_vxyz_R_omega --quads_obs_rel_rot=True '
     '--quads_neighbor_visible_num=0 --quads_neighbor_obs_type=none --quads_neighbor_hidden_size=16 '
     '--quads_obst_hidden_size=8 --quads_obst_density=0.2 --quads_obstacle_obs_type=ToFs '
     '--with_wandb=True --wandb_project=Quad-Swarm-RL --wandb_user=multi-drones '
