@@ -99,19 +99,17 @@ def get_ToFs_depthmap(quad_poses, obst_poses, obst_radius, scan_max_dist,
                     cur_dir = np.array([np.cos(cur_rad), np.sin(cur_rad)])
 
                     # Check distances with wall
-                    for w_id in range(len(walls)):
-                        wall_dir = walls[w_id] - q_pos_xy
-                        if np.dot(wall_dir, cur_dir) > 0:
-                            angle = np.arccos(
-                                np.dot(wall_dir, cur_dir) / (np.linalg.norm(wall_dir) * np.linalg.norm(cur_dir)))
-
-                            # Check if shortest line to wall is in FOV, else project to edge of FOV
-                            if angle <= fov_angle / (num_rays*2):
-                                quads_obs[q_id][ray_id*num_rays+sec_id] = min(quads_obs[q_id][ray_id*num_rays+sec_id], (np.linalg.norm(wall_dir))-sensor_offset)
-                            else:
-                                quads_obs[q_id][ray_id*num_rays+sec_id] = min(quads_obs[q_id][ray_id*num_rays+sec_id],
-                                                                       (np.linalg.norm(wall_dir) / np.cos(
-                                                                  angle - (fov_angle / (num_rays*2))))-sensor_offset)
+                    # for w_id in range(len(walls)):
+                    #     wall_dir = walls[w_id] - q_pos_xy
+                    #     if np.dot(wall_dir, cur_dir) > 0:
+                    #         angle = np.arccos(
+                    #             np.dot(wall_dir, cur_dir) / (np.linalg.norm(wall_dir) * np.linalg.norm(cur_dir)))
+                    #
+                    #         # Check if shortest line to wall is in FOV, else project to edge of FOV
+                    #         if angle <= fov_angle / (num_rays*2):
+                    #             quads_obs[q_id][ray_id*num_rays+sec_id] = min(quads_obs[q_id][ray_id*num_rays+sec_id], (np.linalg.norm(wall_dir)) - sensor_offset)
+                    #         else:
+                    #             quads_obs[q_id][ray_id*num_rays+sec_id] = min(quads_obs[q_id][ray_id*num_rays+sec_id], (np.linalg.norm(wall_dir) / np.cos(angle - (fov_angle / (num_rays*2)))) - sensor_offset)
 
                     # Check distances with obstacles
                     for o_id in range(len(obst_poses)):

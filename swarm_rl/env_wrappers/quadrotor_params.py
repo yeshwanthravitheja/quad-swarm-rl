@@ -20,7 +20,7 @@ def add_quadrotors_env_args(env, parser):
     p.add_argument('--quads_obs_repr', default='xyz_vxyz_R_omega', type=str,
                    choices=['xyz_vxyz_R_omega', 'xyz_vxyz_R_omega_floor', 'xyz_vxyz_R_omega_wall'],
                    help='obs space for quadrotor self')
-    p.add_argument('--quads_obs_rel_rot', default=False, type=str2bool, help='use relative rotation or not')
+    p.add_argument('--quads_obs_rel_rot', default=True, type=str2bool, help='use relative rotation or not')
     p.add_argument('--quads_episode_duration', default=15.0, type=float,
                    help='Override default value for episode duration')
     p.add_argument('--quads_encoder_type', default='corl', choices=['corl', 'attention'], type=str,
@@ -47,7 +47,7 @@ def add_quadrotors_env_args(env, parser):
     p.add_argument('--quads_collision_hitbox_radius', default=2.0, type=float,
                    help='When the distance between two drones are less than N arm_length, we would view them as '
                         'collide.')
-    p.add_argument('--quads_collision_falloff_radius', default=-1.0, type=float,
+    p.add_argument('--quads_collision_falloff_radius', default=4.0, type=float,
                    help='The falloff radius for the smooth penalty. -1.0: no smooth penalty')
     p.add_argument('--quads_collision_smooth_max_penalty', default=10.0, type=float,
                    help='The upper bound of the collision function given distance among drones')
@@ -57,12 +57,14 @@ def add_quadrotors_env_args(env, parser):
     p.add_argument('--quads_use_obstacles', default=False, type=str2bool, help='Use obstacles or not')
     p.add_argument('--quads_obstacle_obs_type', default='none', type=str,
                    choices=['none', 'octomap', 'ToFs'], help='Choose what kind of obs to send to encoder.')
+    p.add_argument('--quads_obstacle_tof_resolution', default=4, type=int,
+                   choices=[4, 8], help='Choose the resolution of ToFs, 4x4 or 8x8.')
     p.add_argument('--quads_obst_noise', default=0.0, type=float,
                    help='Standard deviation of Gaussian noise on obstacle observations')
     p.add_argument('--quads_obst_density', default=0.2, type=float, help='Obstacle density in the map')
     p.add_argument('--quads_obst_size', default=1.0, type=float, help='The diameter / length of obstacles')
     p.add_argument('--quads_obst_grid_size', default=1.0, type=float, help='The grid size that obstacles are placed on')
-    p.add_argument('--quads_obst_spawn_area', nargs='+', default=[6.0, 6.0], type=float,
+    p.add_argument('--quads_obst_spawn_area', nargs='+', default=[8.0, 8.0], type=float,
                    help='The spawning area of obstacles')
     p.add_argument('--quads_domain_random', default=False, type=str2bool, help='Use domain randomization or not')
     p.add_argument('--quads_obst_density_random', default=False, type=str2bool, help='Enable obstacle density randomization or not')

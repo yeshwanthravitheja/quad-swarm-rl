@@ -5,7 +5,7 @@ from gym_art.quadrotor_multi.obstacles.utils import get_surround_sdfs, collision
 
 
 class MultiObstacles:
-    def __init__(self, obstacle_size=1.0, quad_radius=0.046, obs_type='octomap', obst_noise=0.0):
+    def __init__(self, obstacle_size=1.0, quad_radius=0.046, obs_type='octomap', obst_noise=0.0, obst_tof_resolution=4):
         self.size = obstacle_size
         self.obstacle_radius = obstacle_size / 2.0
         self.quad_radius = quad_radius
@@ -15,7 +15,7 @@ class MultiObstacles:
         self.obst_noise = obst_noise
         self.fov_angle = 45 * np.pi / 180
         self.scan_angle_arr = np.array([0., np.pi/2, np.pi, -np.pi/2])
-        self.num_rays = 4
+        self.num_rays = obst_tof_resolution
 
     def reset(self, obs, quads_pos, pos_arr, quads_rots=None):
         self.pos_arr = copy.deepcopy(np.array(pos_arr))
