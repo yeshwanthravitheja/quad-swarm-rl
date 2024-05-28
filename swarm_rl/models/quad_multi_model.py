@@ -158,7 +158,14 @@ class QuadMultiHeadAttentionEncoder(Encoder):
             fc_layer(fc_encoder_layer, fc_encoder_layer),
             nonlinearity(cfg)
         )
-        self.obstacle_obs_dim = QUADS_OBSTACLE_OBS_TYPE[cfg.quads_obstacle_obs_type]
+        if cfg.quads_obstacle_obs_type == 'ToFs':
+            if cfg.quads_obstacle_tof_resolution == 4:
+                self.obstacle_obs_dim = QUADS_OBSTACLE_OBS_TYPE['ToFs_4']
+            elif cfg.quads_obstacle_tof_resolution == 8:
+                self.obstacle_obs_dim = QUADS_OBSTACLE_OBS_TYPE['ToFs_8']
+            else:
+                raise NotImplementedError(f'Obstacle TOF resolution {cfg.quads_obstacle_tof_resolution} not supported!')
+
         self.obstacle_embed_layer = nn.Sequential(
             fc_layer(self.obstacle_obs_dim, fc_encoder_layer),
             nonlinearity(cfg),
@@ -232,7 +239,13 @@ class QuadSingleHeadAttentionEncoder_Sim2Real(QuadMultiHeadAttentionEncoder):
             fc_layer(self.all_neighbor_obs_dim, fc_encoder_layer),
             nonlinearity(cfg),
         )
-        self.obstacle_obs_dim = QUADS_OBSTACLE_OBS_TYPE[cfg.quads_obstacle_obs_type]
+        if cfg.quads_obstacle_obs_type == 'ToFs':
+            if cfg.quads_obstacle_tof_resolution == 4:
+                self.obstacle_obs_dim = QUADS_OBSTACLE_OBS_TYPE['ToFs_4']
+            elif cfg.quads_obstacle_tof_resolution == 8:
+                self.obstacle_obs_dim = QUADS_OBSTACLE_OBS_TYPE['ToFs_8']
+            else:
+                raise NotImplementedError(f'Obstacle TOF resolution {cfg.quads_obstacle_tof_resolution} not supported!')
         self.obstacle_embed_layer = nn.Sequential(
             fc_layer(self.obstacle_obs_dim, fc_encoder_layer),
             nonlinearity(cfg),
@@ -309,7 +322,14 @@ class QuadMultiEncoder(Encoder):
         # Encode Obstacle Obs
         obstacle_encoder_out_size = 0
         if self.use_obstacles:
-            obstacle_obs_dim = QUADS_OBSTACLE_OBS_TYPE[cfg.quads_obstacle_obs_type]
+            if cfg.quads_obstacle_obs_type == 'ToFs':
+                if cfg.quads_obstacle_tof_resolution == 4:
+                    self.obstacle_obs_dim = QUADS_OBSTACLE_OBS_TYPE['ToFs_4']
+                elif cfg.quads_obstacle_tof_resolution == 8:
+                    self.obstacle_obs_dim = QUADS_OBSTACLE_OBS_TYPE['ToFs_8']
+                else:
+                    raise NotImplementedError(
+                        f'Obstacle TOF resolution {cfg.quads_obstacle_tof_resolution} not supported!')
             obstacle_hidden_size = cfg.quads_obst_hidden_size
             self.obstacle_encoder = nn.Sequential(
                 fc_layer(obstacle_obs_dim, obstacle_hidden_size),

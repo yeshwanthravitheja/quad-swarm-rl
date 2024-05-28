@@ -122,7 +122,7 @@ class QuadrotorSingle:
                  init_random_state=False, sense_noise=None, verbose=False, gravity=GRAV,
                  t2w_std=0.005, t2t_std=0.0005, excite=False, dynamics_simplification=False, use_numba=False,
                  neighbor_obs_type='none', num_agents=1, num_use_neighbor_obs=0, use_obstacles=False,
-                 obst_obs_type='none', obs_rel_rot=False):
+                 obst_obs_type='none', obs_rel_rot=False, obst_tof_resolution=4):
         np.seterr(under='ignore')
         """
         Args:
@@ -250,6 +250,7 @@ class QuadrotorSingle:
         # Obstacles info
         self.use_obstacles = use_obstacles
         self.obst_obs_type = obst_obs_type
+        self.obst_tof_resolution = obst_tof_resolution
 
         # Make observation space
         self.observation_space = self.make_observation_space()
@@ -327,7 +328,8 @@ class QuadrotorSingle:
             "wall": [np.zeros(6), 5.0 * np.ones(6)],
             "floor": [np.zeros(1), self.room_box[1][2] * np.ones(1)],
             "octomap": [-10 * np.ones(9), 10 * np.ones(9)],
-            "ToFs": [np.zeros(16), 2 * np.ones(16)],
+            "ToFs_4": [np.zeros(16), 2 * np.ones(16)],
+            "ToFs_8": [np.zeros(32), 2 * np.ones(32)],
         }
         self.obs_comp_names = list(self.obs_space_low_high.keys())
         self.obs_comp_sizes = [self.obs_space_low_high[name][1].size for name in self.obs_comp_names]
@@ -343,7 +345,10 @@ class QuadrotorSingle:
             if self.obst_obs_type == 'octomap':
                 obs_comps = obs_comps + ["octomap"]
             else:
-                obs_comps = obs_comps + ["ToFs"]
+                if self.obst_tof_resolution == 4:
+                    obs_comps = obs_comps + ["ToFs_4"]
+                else:
+                    obs_comps = obs_comps + ["ToFs_8"]
 
         print("Observation components:", obs_comps)
         obs_low, obs_high = [], []
