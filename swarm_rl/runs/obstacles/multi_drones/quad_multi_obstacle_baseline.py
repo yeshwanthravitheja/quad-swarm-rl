@@ -11,7 +11,7 @@ QUAD_BASELINE_CLI_8 = (
     # Scenarios
     '--quads_mode=mix --quads_episode_duration=15.0 '
     # Self
-    '--quads_obs_repr=xyz_vxyz_R_omega --quads_sim2real=True '
+    '--quads_obs_repr=xyz_vxyz_R_omega --quads_sim2real=True --quads_encoder_type=attention '
     # Neighbor
     '--quads_neighbor_hidden_size=16 --quads_neighbor_obs_type=pos --quads_collision_hitbox_radius=2.0 '
     '--quads_collision_falloff_radius=4.0 --quads_collision_reward=5.0 --quads_collision_smooth_max_penalty=4.0 '

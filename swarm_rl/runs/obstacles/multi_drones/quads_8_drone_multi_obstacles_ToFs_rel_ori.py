@@ -1,5 +1,5 @@
 from sample_factory.launcher.run_description import Experiment, ParamGrid, RunDescription
-from swarm_rl.runs.obstacles.quad_obstacle_baseline import QUAD_BASELINE_CLI_8
+from swarm_rl.runs.obstacles.multi_drones.quad_multi_obstacle_baseline import QUAD_BASELINE_CLI_8
 
 _params = ParamGrid(
     [
