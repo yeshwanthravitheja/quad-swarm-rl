@@ -20,7 +20,7 @@ headers_single_obst = """
 #define EPS 0.000001 // 1e-6
 #define OBST_DIM 16
 
-static float obstacle_embeds[4];
+static float obstacle_embeds[8];
 static float output_embeds[20];
 
 float base;
@@ -455,7 +455,7 @@ int main(const float *self_indatav, const float *obst_indatav, float *obst_outda
 
     networkEvaluate(&motorThrusts, self_indatav);
     
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 8; i++) {
         obst_outdata[i] = obstacle_embeds[i];
     }
 

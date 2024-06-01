@@ -95,10 +95,13 @@ def compare_torch_to_c_model_outputs_single_obst(args):
             # test 1000 times on different random inputs
             for _ in range(1000):
                 # check the obstacle encoder outputs
-                obstacle_obs = torch.rand(16)
+                if cfg.quads_obstacle_tof_resolution == 4:
+                    obstacle_obs = torch.rand(16)
+                else:
+                    obstacle_obs = torch.rand(32)
                 torch_obstacle_out = torch_model.actor_encoder.obstacle_encoder(obstacle_obs).detach().numpy()
                 obst_indata = obstacle_obs.detach().numpy()
-                obst_outdata = np.zeros(4).astype(np.float32)  # TODO: make this cfg.rnn_size instead of hardcoded
+                obst_outdata = np.zeros(8).astype(np.float32)  # TODO: make this cfg.rnn_size instead of hardcoded
 
                 self_obs = torch.randn(18)
                 self_indata = self_obs.detach().numpy()
