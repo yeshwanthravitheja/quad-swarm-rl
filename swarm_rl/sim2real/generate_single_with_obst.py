@@ -2,7 +2,7 @@ import os
 
 
 from swarm_rl.sim2real.code_blocks import headers_network_evaluate, headers_evaluation, \
-    headers_single_obst, single_drone_obst_eval
+    headers_single_obst_1, headers_single_obst_2, headers_single_obst_3, single_drone_obst_eval_1, single_drone_obst_eval_2
 from swarm_rl.sim2real.sim2real_utils import process_layer
 
 
@@ -26,6 +26,10 @@ def generate_c_model_single_obst(model, output_path, output_folder, testing=Fals
 
         # complete the structure array
         # get rid of the comma after the last curly bracket
+        if 'obst' in enc_name:
+            obst_enc_size = int(structure.split(",")[-2][:-1])
+            obst_dim = int(structure.split(",")[0].split("{")[-1])
+
         structure = structure[:-1]
         structure += '};\n'
         structures += structure
@@ -39,7 +43,7 @@ def generate_c_model_single_obst(model, output_path, output_folder, testing=Fals
 
     # headers
     source += headers_network_evaluate if not testing else headers_evaluation
-    source += headers_single_obst
+    source += headers_single_obst_1 + str(obst_dim) + headers_single_obst_2 + str(obst_enc_size) + headers_single_obst_3
     # helper funcs
     # source += linear_activation
     # source += sigmoid_activation
@@ -63,7 +67,7 @@ def generate_c_model_single_obst(model, output_path, output_folder, testing=Fals
     source += methods
 
     if testing:
-        source += single_drone_obst_eval
+        source += single_drone_obst_eval_1 + str(obst_enc_size) + single_drone_obst_eval_2
 
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
