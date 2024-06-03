@@ -1,5 +1,5 @@
 python -m sample_factory.launcher.run \
---run=swarm_rl.runs.obstacles.multi_drones.quads_8_drone_multi_obstacles_ToFs_rel_ori \
+--run=swarm_rl.runs.multi_quad.quads_multi_drone_mean_embed_obs_desired_rot \
 --backend=slurm --slurm_workdir=slurm_output \
 --experiment_suffix=slurm --pause_between=1 \
 --slurm_gpus_per_job=1 --slurm_cpus_per_gpu=16 \
