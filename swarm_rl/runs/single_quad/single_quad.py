@@ -3,6 +3,7 @@ from swarm_rl.runs.single_quad.baseline import QUAD_BASELINE_CLI
 
 _params = ParamGrid([
     ('seed', [0000, 1111, 2222, 3333]),
+    ("quads_obs_rel_rot", [True]),
 ])
 
 SINGLE_CLI = QUAD_BASELINE_CLI + (
