@@ -8,7 +8,7 @@ headers_controller_nn = """
 
 """
 
-headers_network_evaluate = """#include "network_evaluate.h"
+headers_network_evaluate = """#include "network_evaluate_tof.h"
 
 """
 
@@ -16,11 +16,15 @@ headers_multi_agent_mean_embed = """#include "network_evaluate_tof.h"
 
 """
 
-headers_single_obst = """
+headers_single_obst_1 = """
 #define EPS 0.000001 // 1e-6
-#define OBST_DIM 16
+#define OBST_DIM """
 
-static float obstacle_embeds[4];
+headers_single_obst_2 = """
+
+static float obstacle_embeds["""
+
+headers_single_obst_3 = """];
 static float output_embeds[20];
 
 float base;
@@ -446,7 +450,7 @@ int main(const float *self_indatav, const float *nbr_indatav, float *outdatav){
 }
 """
 
-single_drone_obst_eval = """
+single_drone_obst_eval_1 = """
 int main(const float *self_indatav, const float *obst_indatav, float *obst_outdata, float *outdatav){
     size_t i;
     control_t_n motorThrusts;
@@ -455,7 +459,8 @@ int main(const float *self_indatav, const float *obst_indatav, float *obst_outda
 
     networkEvaluate(&motorThrusts, self_indatav);
     
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < """
+single_drone_obst_eval_2 = """; i++) {
         obst_outdata[i] = obstacle_embeds[i];
     }
 
