@@ -25,7 +25,9 @@ headers_single_obst_2 = """
 static float obstacle_embeds["""
 
 headers_single_obst_3 = """];
-static float output_embeds[20];
+static float output_embeds["""
+
+headers_single_obst_4 = """];
 
 float base;
 float exponent;
