@@ -2,7 +2,8 @@ import os
 
 
 from swarm_rl.sim2real.code_blocks import headers_network_evaluate, headers_evaluation, \
-    headers_single_obst_1, headers_single_obst_2, headers_single_obst_3, single_drone_obst_eval_1, single_drone_obst_eval_2
+    headers_single_obst_1, headers_single_obst_2, headers_single_obst_3, single_drone_obst_eval_1, \
+    single_drone_obst_eval_2, headers_single_obst_4
 from swarm_rl.sim2real.sim2real_utils import process_layer
 
 
@@ -26,6 +27,8 @@ def generate_c_model_single_obst(model, output_path, output_folder, testing=Fals
 
         # complete the structure array
         # get rid of the comma after the last curly bracket
+        if 'self' in enc_name:
+            self_enc_size = int(structure.split(",")[4].split("{")[-1])
         if 'obst' in enc_name:
             obst_enc_size = int(structure.split(",")[-2][:-1])
             obst_dim = int(structure.split(",")[0].split("{")[-1])
@@ -43,7 +46,7 @@ def generate_c_model_single_obst(model, output_path, output_folder, testing=Fals
 
     # headers
     source += headers_network_evaluate if not testing else headers_evaluation
-    source += headers_single_obst_1 + str(obst_dim) + headers_single_obst_2 + str(obst_enc_size) + headers_single_obst_3
+    source += headers_single_obst_1 + str(obst_dim) + headers_single_obst_2 + str(obst_enc_size) + headers_single_obst_3 + str(self_enc_size) + headers_single_obst_4
     # helper funcs
     # source += linear_activation
     # source += sigmoid_activation
