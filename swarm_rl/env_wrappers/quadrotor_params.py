@@ -68,6 +68,11 @@ def add_quadrotors_env_args(env, parser):
                    help='The spawning area of obstacles')
     p.add_argument('--quads_obst_spawn_center', default=True, type=str2bool,
                    help='Spawn obstacles at the center of grids or not')
+    p.add_argument('--quads_obst_grid_size_random', default=False, type=str2bool,
+                   help='Spawn obstacle grid size randomly or not')
+    p.add_argument('--quads_obst_grid_size_range', nargs='+', default=[0.4, 0.8], type=float,
+                   help='Spawn range of grid size')
+
     p.add_argument('--quads_domain_random', default=False, type=str2bool, help='Use domain randomization or not')
     p.add_argument('--quads_obst_density_random', default=False, type=str2bool, help='Enable obstacle density randomization or not')
     p.add_argument('--quads_obst_density_min', default=0.05, type=float,

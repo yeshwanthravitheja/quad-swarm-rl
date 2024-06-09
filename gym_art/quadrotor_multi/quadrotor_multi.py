@@ -27,7 +27,7 @@ class QuadrotorEnvMulti(gym.Env):
 
                  # Obstacle
                  use_obstacles, obst_density, obst_size, obst_spawn_area, obst_obs_type, obst_noise, grid_size,
-                 obst_tof_resolution, obst_spawn_center,
+                 obst_tof_resolution, obst_spawn_center, obst_grid_size_random, obst_grid_size_range,
 
                  # Aerodynamics, Numba Speed Up, Scenarios, Room, Replay Buffer, Rendering
                  use_downwash, use_numba, quads_mode, room_dims, use_replay_buffer, quads_view_mode,
@@ -134,6 +134,9 @@ class QuadrotorEnvMulti(gym.Env):
             self.obst_size = obst_size
             self.grid_size = grid_size
             self.obst_spawn_center = obst_spawn_center
+            self.obst_grid_size_random = obst_grid_size_random
+            self.obst_grid_size_range = obst_grid_size_range
+
             assert self.obst_size <= self.grid_size
             self.obst_tof_resolution = obst_tof_resolution
 
@@ -386,6 +389,10 @@ class QuadrotorEnvMulti(gym.Env):
             self.obstacles = MultiObstacles(obstacle_size=self.obst_size, quad_radius=self.quad_arm,
                                             obs_type=self.obst_obs_type, obst_noise=self.obst_noise,
                                             obst_tof_resolution=self.obst_tof_resolution)
+            if self.obst_grid_size_random:
+                tmp_grid_size = np.random.uniform(low=self.obst_grid_size_range[0] - 0.049, high=self.obst_grid_size_range[1] + 0.049)
+                self.grid_size = np.round(tmp_grid_size, 1)
+
             self.obst_map, obst_pos_arr, cell_centers = self.obst_generation_given_density()
             self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers)
         else:
