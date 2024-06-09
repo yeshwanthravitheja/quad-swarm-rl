@@ -7,16 +7,16 @@ _params = ParamGrid([
 ])
 
 SINGLE_CLI = QUAD_BASELINE_CLI + (
-    ' --with_wandb=True --wandb_project=Quad-Swarm-RL --wandb_group=single --wandb_user=multi-drones'
+    ' --with_wandb=True --wandb_project=Quad-Swarm-RL --wandb_group=single_update_model --wandb_user=multi-drones'
 )
 
 _experiment = Experiment(
-    'single',
+    'single_update_model',
     SINGLE_CLI,
     _params.generate_params(randomize=False),
 )
 
-RUN_DESCRIPTION = RunDescription('paper_quads_multi_mix_baseline_8a_attn_v116', experiments=[_experiment])
+RUN_DESCRIPTION = RunDescription('single_drone', experiments=[_experiment])
 
 # Command to use this script on local machine: Please change num_workers to the physical cores of your local machine
 # python -m sample_factory.launcher.run --run=swarm_rl.runs.quad_multi_mix_baseline --backend=processes --max_parallel=4 --pause_between=1 --experiments_per_gpu=1 --num_gpus=4
