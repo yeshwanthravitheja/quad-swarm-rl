@@ -70,7 +70,7 @@ def add_quadrotors_env_args(env, parser):
                    help='Spawn obstacles at the center of grids or not')
     p.add_argument('--quads_obst_grid_size_random', default=False, type=str2bool,
                    help='Spawn obstacle grid size randomly or not')
-    p.add_argument('--quads_obst_grid_size_range', nargs='+', default=[0.4, 0.8], type=float,
+    p.add_argument('--quads_obst_grid_size_range', nargs='+', default=[0.5, 0.8], type=float,
                    help='Spawn range of grid size')
 
     p.add_argument('--quads_domain_random', default=False, type=str2bool, help='Use domain randomization or not')
