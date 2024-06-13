@@ -12,48 +12,50 @@ from swarm_rl.sim2real.sim2real_utils import load_sf_model
 
 
 def compare_torch_to_c_model_outputs_single_drone(args):
-    # project_root = Path.home().joinpath('quad-swarm-rl')
-    # os.chdir(str(project_root))
-    # Load a list of torch models and c model names
-    models, c_model_names, _ = load_sf_model(Path(args.torch_model_dir), model_type=args.model_type)
+    parent_model_dir = Path(args.torch_model_dir)
+    sub_model_dir_list = [name for name in os.listdir(parent_model_dir) if
+                          os.path.isdir(os.path.join(parent_model_dir, name))]
+    for i in range(len(sub_model_dir_list)):
+        model_dir = parent_model_dir.joinpath(sub_model_dir_list[i])
 
-    # Get a random observation
-    obs = torch.randn((1, 18))
-    obs_dict = {'obs': obs}
+        models, c_model_names, cfg = load_sf_model(model_dir, model_type=args.model_type)
 
-    for model, c_model_name in zip(models, c_model_names):
-        # Get actions from the torch model
-        torch_model_out = model.action_parameterization(model.actor_encoder(obs_dict))[1]
-        torch_model_out = torch_model_out.means.detach().numpy()
+        # Get a random observation
+        obs = torch.randn((1, 18))
+        obs_dict = {'obs': obs}
 
-        # Get actions from c model
-        c_base_name, c_extension = os.path.splitext(args.output_model_name)
-        final_c_model_name = f'{c_base_name}_{c_model_name}{c_extension}'
+        for model, c_model_name in zip(models, c_model_names):
+            # Get actions from the torch model
+            torch_model_out = model.action_parameterization(model.actor_encoder(obs_dict))[1]
+            torch_model_out = torch_model_out.means.detach().numpy()
 
-        c_model_dir = Path(args.output_dir).joinpath(args.model_type)
-        c_model_path = Path(args.output_dir).joinpath(args.model_type, final_c_model_name)
-        shared_lib_path = c_model_dir.joinpath(f'single_{c_model_name}.so')
-        subprocess.run(
-            ['g++', '-fPIC', '-shared', '-o', str(shared_lib_path), str(c_model_path)],
-            check=True,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE
-        )
+            # Get C model
+            c_base_name, c_extension = os.path.splitext(args.output_model_name)
+            final_c_model_name = f'{c_base_name}_{c_model_name}{c_extension}'
+            c_model_dir = Path(args.output_dir).joinpath(args.model_type, model_dir.parts[1], model_dir.parts[2])
+            c_model_path = c_model_dir.joinpath(final_c_model_name)
+            shared_lib_path = c_model_dir.joinpath(f'single_{c_model_name}.so')
+            subprocess.run(
+                ['g++', '-fPIC', '-shared', '-o', str(shared_lib_path), str(c_model_path)],
+                check=True,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE
+            )
 
-        lib = ctypes.cdll.LoadLibrary(str(shared_lib_path))
-        func = lib.main
-        func.restype = None
-        func.argtypes = [
-            ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"),
-            ctypes.c_size_t,
-            ndpointer(ctypes.c_float, flags="C_CONTIGUOUS")
-        ]
+            lib = ctypes.cdll.LoadLibrary(str(shared_lib_path))
+            func = lib.main
+            func.restype = None
+            func.argtypes = [
+                ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"),
+                ctypes.c_size_t,
+                ndpointer(ctypes.c_float, flags="C_CONTIGUOUS")
+            ]
 
-        indata = obs.flatten().detach().numpy()
-        outdata = np.zeros(4).astype(np.float32)
-        func(indata, indata.size, outdata)
+            indata = obs.flatten().detach().numpy()
+            outdata = np.zeros(4).astype(np.float32)
+            func(indata, indata.size, outdata)
 
-        assert np.allclose(torch_model_out, outdata, atol=1e-6)
+            assert np.allclose(torch_model_out, outdata, atol=1e-6)
 
 def compare_torch_to_c_model_outputs_single_obst(args):
     # prepare the c model and main method for evaluation
