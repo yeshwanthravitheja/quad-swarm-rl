@@ -103,6 +103,7 @@ def calculate_drone_proximity_penalties(distance_matrix, collision_falloff_thres
     return dt * penalties
 
 
+@njit
 def calculate_drone_obst_proximity_penalties(r_drone, r_obst, penalty_coeff, penalty_range,
                                              quads_pos, quads_vel, obst_pos, dt):
     penalties = np.zeros(len(quads_pos))

@@ -124,7 +124,7 @@ def get_ToFs_depthmap(quad_poses, obst_poses, obst_radius, scan_max_dist,
         quads_obs = quads_obs + np.random.normal(loc=0, scale=obst_noise, size=quads_obs.shape)
         quads_obs = np.clip(quads_obs, a_min=0.0, a_max=scan_max_dist)
         # Extra operation
-        quads_obs = np.clip(quads_obs, a_min=0, a_max=0.5)
+        quads_obs = np.clip(quads_obs, a_min=0, a_max=2.0)
         quads_obs = np.floor(quads_obs * 20) / 20  # Round down to the nearest 0.05
 
         return quads_obs
