@@ -24,9 +24,13 @@ def state_xyz_vxyz_R_omega(self):
         )
 
     if self.obs_rel_rot:
-        return np.concatenate([pos - self.goal[:3], vel, rot.flatten() - self.base_rot.flatten(), omega])
+        tmp_obs = np.concatenate([pos - self.goal[:3], vel, rot.flatten() - self.base_rot.flatten(), omega])
+        round_obst = np.round(tmp_obs, 2)
+        return round_obst
     else:
-        return np.concatenate([pos - self.goal[:3], vel, rot.flatten(), omega])
+        tmp_obs = np.concatenate([pos - self.goal[:3], vel, rot.flatten(), omega])
+        round_obst = np.round(tmp_obs, 2)
+        return round_obst
 
 
 def state_xyz_vxyz_R_omega_floor(self):
