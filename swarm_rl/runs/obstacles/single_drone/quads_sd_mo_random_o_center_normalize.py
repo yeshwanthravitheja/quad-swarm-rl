@@ -13,11 +13,11 @@ _params = ParamGrid(
 OBSTACLE_MODEL_CLI = QUAD_BASELINE_CLI_1 + (
     ' --quads_obst_grid_size=0.5 --quads_obst_spawn_center=False --quads_obst_grid_size_range 0.5 0.8 '
     '--with_wandb=True --wandb_project=Quad-Swarm-RL --wandb_user=multi-drones '
-    '--wandb_group=sd_mo_normal_input_floor_clip_tof_1'
+    '--wandb_group=sd_mo_normal_input_floor_clip_tof_2_normal_1'
 )
 
 _experiment = Experiment(
-    "sd_mo_normal_input_floor_clip_tof_1",
+    "sd_mo_normal_input_floor_clip_tof_2_normal_1",
     OBSTACLE_MODEL_CLI,
     _params.generate_params(randomize=False),
 )
