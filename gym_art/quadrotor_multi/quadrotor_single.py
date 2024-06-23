@@ -76,12 +76,22 @@ def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, 
     cost_crash_raw = float(on_floor)
     cost_crash = rew_coeff["crash"] * cost_crash_raw
 
+    # Penalize for too low height
+    abs_z = dynamics.pos[2]
+    if abs_z > 0.2:
+        cost_low_height_raw = 0.0
+        cost_low_height = 0.0
+    else:
+        cost_low_height_raw = 0.4 - 2 * abs_z
+        cost_low_height = 1.0 * cost_low_height_raw
+
     reward = -dt * np.sum([
         cost_pos,
         cost_effort,
         cost_crash,
         cost_orient,
         cost_spin,
+        cost_low_height,
     ])
 
     rew_info = {
@@ -91,6 +101,7 @@ def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, 
         'rew_crash': -cost_crash,
         "rew_orient": -cost_orient,
         "rew_spin": -cost_spin,
+        "rew_lowh": -cost_low_height,
 
         "rewraw_main": -cost_pos_raw,
         'rewraw_pos': -cost_pos_raw,
@@ -98,6 +109,7 @@ def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, 
         'rewraw_crash': -cost_crash_raw,
         "rewraw_orient": -cost_orient_raw,
         "rewraw_spin": -cost_spin_raw,
+        "rewraw_lowh": -cost_low_height_raw,
     }
 
     for k, v in rew_info.items():

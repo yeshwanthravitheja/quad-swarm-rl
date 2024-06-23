@@ -75,7 +75,7 @@ class Scenario_o_base(QuadrotorScenario):
             width = self.obstacle_map.shape[0]
             index = x + (width * y)
             pos_x, pos_y = self.cell_centers[index]
-            z_list_start = np.random.uniform(low=1.0, high=3.0)
+            z_list_start = np.random.uniform(low=0.5, high=1.5)
             generated_points.append(np.array([pos_x, pos_y, z_list_start]))
 
         return np.array(generated_points)
