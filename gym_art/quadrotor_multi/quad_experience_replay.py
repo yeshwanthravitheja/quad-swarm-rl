@@ -89,7 +89,7 @@ class ExperienceReplayWrapper(gym.Wrapper):
         self.max_episode_checkpoints_to_keep = int(3.0 / self.replay_buffer.cp_step_size_sec)  # keep only checkpoints from the last 3 seconds
         self.episode_checkpoints = deque([], maxlen=self.max_episode_checkpoints_to_keep)
 
-        self.save_time_before_collision_sec = 1.5
+        self.save_time_before_collision_sec = 3.0
         self.last_tick_added_to_buffer = -1e9
 
         # variables for tensorboard
@@ -152,15 +152,16 @@ class ExperienceReplayWrapper(gym.Wrapper):
                     # added this check to avoid adding a lot of collisions from the same episode to the buffer
 
                     steps_ago = int(self.save_time_before_collision_sec / self.replay_buffer.cp_step_size_sec)
-                    if steps_ago > len(self.episode_checkpoints):
-                        print(f"Tried to read past the boundary of checkpoint_history. Steps ago: {steps_ago}, episode checkpoints: {len(self.episode_checkpoints)}, {self.env.envs[0].tick}")
-                        raise IndexError
-                    else:
-                        env, obs = self.episode_checkpoints[-steps_ago]
-                        self.replay_buffer.write_cp_to_buffer(env, obs)
-                        self.env.collision_occurred = False  # this allows us to add a copy of this episode to the buffer once again if another collision happens
+                    # if steps_ago > len(self.episode_checkpoints):
+                    #     print(f"Tried to read past the boundary of checkpoint_history. Steps ago: {steps_ago}, episode checkpoints: {len(self.episode_checkpoints)}, {self.env.envs[0].tick}")
+                    #     raise IndexError
+                    # else:
+                    pre_checkpoint = min(steps_ago, len(self.episode_checkpoints))
+                    env, obs = self.episode_checkpoints[-pre_checkpoint]
+                    self.replay_buffer.write_cp_to_buffer(env, obs)
+                    self.env.collision_occurred = False  # this allows us to add a copy of this episode to the buffer once again if another collision happens
 
-                        self.last_tick_added_to_buffer = self.env.envs[0].tick
+                    self.last_tick_added_to_buffer = self.env.envs[0].tick
 
         return obs, rewards, dones, infos
 
