@@ -37,7 +37,13 @@ def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, 
                             obs_rel_rot=False, base_rot=np.eye(3)):
     # Distance to the goal
     dist = np.linalg.norm(goal - dynamics.pos)
-    cost_pos_raw = dist
+
+    if dist > 0.5:
+        cost_pos_raw = dist
+    else:
+        # cost_pos_raw = -2e^{-2x} + 2e^{-1} + 0.5
+        cost_pos_raw = -2 * np.exp(-2 * dist) + 2 * np.exp(-1) + 0.5
+
     cost_pos = rew_coeff["pos"] * cost_pos_raw
 
     # Penalize amount of control effort
