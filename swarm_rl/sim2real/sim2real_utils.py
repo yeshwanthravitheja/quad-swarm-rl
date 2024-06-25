@@ -40,6 +40,8 @@ def load_sf_model(model_dir, model_type):
     args.quads_obst_noise = 0.0
     args.quads_obst_grid_size = 1.0
     args.quads_render_mode = 'human'
+    args.quads_collision_smooth_max_penalty = 0.0
+    args.quads_obst_collision_smooth_penalty_range = 0.0
 
     # Load model
     register_swarm_components()
