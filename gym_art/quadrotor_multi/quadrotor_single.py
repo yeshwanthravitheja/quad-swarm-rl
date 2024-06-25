@@ -38,6 +38,8 @@ def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, 
     # Distance to the goal
     dist = np.linalg.norm(goal - dynamics.pos)
 
+    cost_dist_raw = dist
+
     if dist > 0.5:
         cost_pos_raw = dist
     else:
@@ -116,6 +118,7 @@ def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, 
         "rewraw_orient": -cost_orient_raw,
         "rewraw_spin": -cost_spin_raw,
         "rewraw_lowh": -cost_low_height_raw,
+        "rewraw_dist": -cost_dist_raw,
     }
 
     for k, v in rew_info.items():
