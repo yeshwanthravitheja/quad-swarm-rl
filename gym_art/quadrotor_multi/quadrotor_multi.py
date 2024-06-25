@@ -575,7 +575,7 @@ class QuadrotorEnvMulti(gym.Env):
 
             # smooth penalty
             rew_obst_proximity = -1.0 * calculate_drone_obst_proximity_penalties(
-                r_drone=self.quad_arm, r_obst=self.obst_size,
+                r_drone=self.quad_arm, r_obst=self.obst_size / 2.0,
                 penalty_coeff=self.rew_coeff["quadcol_bin_obst_smooth_max"], penalty_range=self.obst_penalty_range,
                 quads_pos=self.pos, quads_vel=self.vel, obst_pos=self.obstacles.pos_arr, dt=self.control_dt,
             )
