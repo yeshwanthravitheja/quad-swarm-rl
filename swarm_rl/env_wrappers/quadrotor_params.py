@@ -20,7 +20,8 @@ def add_quadrotors_env_args(env, parser):
     p.add_argument('--quads_obs_repr', default='xyz_vxyz_R_omega', type=str,
                    choices=['xyz_vxyz_R_omega', 'xyz_vxyz_R_omega_floor', 'xyz_vxyz_R_omega_wall'],
                    help='obs space for quadrotor self')
-    p.add_argument('--quads_obs_rel_rot', default=True, type=str2bool, help='use relative rotation or not')
+    p.add_argument('--quads_obs_rel_rot', default=False, type=str2bool, help='use relative rotation or not')
+    p.add_argument('--quads_obs_rel', default=True, type=str2bool, help='use relative observation for all states or not')
     p.add_argument('--quads_episode_duration', default=15.0, type=float,
                    help='Override default value for episode duration')
     p.add_argument('--quads_encoder_type', default='corl', choices=['corl', 'attention'], type=str,

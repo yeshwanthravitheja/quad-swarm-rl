@@ -44,8 +44,8 @@ class QuadTrajGen:
         initial_state.omega[2], initial_state.acc, hover_pos, goal_yaw, np.zeros(3), 0, np.zeros(3))
 
         self.planner.planned_trajectory["t_begin"] = current_time
-        print("PLANNER: Start", initial_state)
-        print("PLANNER: End", desired_state)
+        # print("PLANNER: Start", initial_state)
+        # print("PLANNER: End", desired_state)
 
     def piecewise_eval(self, t) -> traj_eval:
         """ Generates the next goal point based on current time t (seconds).

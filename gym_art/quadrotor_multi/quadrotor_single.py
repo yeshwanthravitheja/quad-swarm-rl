@@ -36,7 +36,7 @@ GRAV = 9.81  # default gravitational constant
 def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, action_prev, on_floor=False,
                             obs_rel_rot=False, base_rot=np.eye(3)):
     # Distance to the goal
-    dist = np.linalg.norm(goal - dynamics.pos)
+    dist = np.linalg.norm(goal[:3] - dynamics.pos)
     cost_pos_raw = dist
     cost_pos = rew_coeff["pos"] * cost_pos_raw
 
@@ -231,7 +231,6 @@ class QuadrotorSingle:
         # Updating dynamics
         self.action_space = None
         self.resample_dynamics()
-
         # Self info
         self.state_vector = self.state_vector = getattr(get_state, "state_" + self.obs_repr)
         if use_obstacles:
