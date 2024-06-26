@@ -88,10 +88,10 @@ def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, 
     reward = -dt * np.sum([
         cost_pos,
         cost_effort,
-        cost_crash,
+        (1.0 / dt) * cost_crash,
         cost_orient,
         cost_spin,
-        cost_low_height,
+        (1.0 / dt) * cost_low_height,
     ])
 
     rew_info = {
