@@ -47,13 +47,18 @@ class traj_eval:
     omega: np.ndarray = np.zeros(3)
     yaw: float = 0
 
-    def set_initial_state(self, state: np.ndarray):
+    def set_initial_pos(self, state: np.ndarray):
         """ Sets the corresponding states based on input state: [x,y,z,yaw] """
         self.pos[0] = state[0]
         self.pos[1] = state[1]
         self.pos[2] = state[2]
 
-        self.yaw = state[3]
+    
+    def set_initial_yaw(self, yaw: float):
+        self.yaw = yaw
+        
+    def as_nparray(self):
+        return np.concatenate((self.pos, self.vel, self.acc, self.omega, np.array([self.yaw])))
 
     
 

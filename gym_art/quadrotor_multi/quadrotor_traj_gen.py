@@ -1,7 +1,7 @@
 import numpy as np
 import copy
-from quad_utils import normalize, cross_vec, norm2
-from quadrotor_planner import QuadPlanner, poly4d, traj_eval
+from gym_art.quadrotor_multi.quad_utils import normalize, cross_vec, norm2
+from gym_art.quadrotor_multi.quadrotor_planner import QuadPlanner, poly4d, traj_eval
 
 class QuadTrajGen:
     """ 
@@ -44,6 +44,8 @@ class QuadTrajGen:
         initial_state.omega[2], initial_state.acc, hover_pos, goal_yaw, np.zeros(3), 0, np.zeros(3))
 
         self.planner.planned_trajectory["t_begin"] = current_time
+        print("PLANNER: Start", initial_state)
+        print("PLANNER: End", desired_state)
 
     def piecewise_eval(self, t) -> traj_eval:
         """ Generates the next goal point based on current time t (seconds).
@@ -144,8 +146,8 @@ class QuadTrajGen:
 
             x = x * t + polynomial[i]
         
-        if (x < 0.00001):
-            x = 0
+        # if (math.abs(x) < 0.001):
+        #     x = 0
 
         return x
 
@@ -236,12 +238,21 @@ if __name__ == "__main__":
     # Duration needed to complete trajectory in seconds
     duration = 5.0
 
+    # # Create an instance goal point for the initial state. 
+    # initial_state = traj_eval()
+    # initial_state.set_initial_pos([1.25,-0.75,2.138])
+    # initial_state.set_initial_yaw(0)
+    
+    # #Desired FINAL goal point
+    # goal_state = [2.75, -2.25, 2.617, 0]
+
     # Create an instance goal point for the initial state. 
     initial_state = traj_eval()
-    initial_state.set_initial_state([0.0,0.0,0.65,0])
+    initial_state.set_initial_pos([0,0,0])
+    initial_state.set_initial_yaw(0)
     
     #Desired FINAL goal point
-    goal_state = [5.00000, 0.00000, 0.65, 3.14]
+    goal_state = [-1.2, -2.25, 2.617, 0]
 
     print("Initial State:", initial_state)
 
@@ -249,6 +260,7 @@ if __name__ == "__main__":
     traj_gen.plan_go_to_from(initial_state=initial_state, desired_state=goal_state, duration=duration, current_time=t)
     
     sim_time = 11
+    print("Initial Goal:", traj_gen.piecewise_eval(0.001))
 
     # Get setpoint loops. This can be understood as the simulation steps.
     while(t < sim_time):  
@@ -257,11 +269,11 @@ if __name__ == "__main__":
         # Evaluate the next goal point based on the current simulation time (in seconds).
         next_goal = traj_gen.piecewise_eval(t)
 
-        # We can also replan during the simulation. 
-        # NOTE: THIS SHOULD ONLY BE CALLED AFTER THE PREVIOUS PLAN HAS FINISHED.
-        if (traj_gen.plan_finished(t)):
-            traj_gen.plan_go_to_from(initial_state=next_goal, desired_state=[0, 0, 0.65, 0], duration=duration, current_time=t)
-            plan_stale = False
+        # # We can also replan during the simulation. 
+        # # NOTE: THIS SHOULD ONLY BE CALLED AFTER THE PREVIOUS PLAN HAS FINISHED.
+        # if (traj_gen.plan_finished(t)):
+        #     traj_gen.plan_go_to_from(initial_state=next_goal, desired_state=[0, 0, 0.65, 0], duration=duration, current_time=t)
+        #     plan_stale = False
 
     print("Final State: ", total_traj[-1])
 
