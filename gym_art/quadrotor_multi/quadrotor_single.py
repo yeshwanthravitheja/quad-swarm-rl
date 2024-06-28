@@ -75,7 +75,6 @@ def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, 
             cost_orient_raw = 1.0
         else:
             cost_orient_raw = -dynamics.rot[2, 2]
-
     cost_orient = rew_coeff["orient"] * cost_orient_raw
 
     # Loss for constant uncontrolled rotation around vertical axis
@@ -150,7 +149,7 @@ class QuadrotorSingle:
                  init_random_state=False, sense_noise=None, verbose=False, gravity=GRAV,
                  t2w_std=0.005, t2t_std=0.0005, excite=False, dynamics_simplification=False, use_numba=False,
                  neighbor_obs_type='none', num_agents=1, num_use_neighbor_obs=0, use_obstacles=False,
-                 obst_obs_type='none', obs_rel_rot=False, obst_tof_resolution=4, dynamic_goal=True):
+                 obst_obs_type='none', obs_rel_rot=False, obst_tof_resolution=4, dynamic_goal=False):
         np.seterr(under='ignore')
         """
         Args:

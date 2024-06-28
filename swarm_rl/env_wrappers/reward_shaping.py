@@ -6,7 +6,7 @@ from sample_factory.envs.env_utils import TrainingInfoInterface, RewardShapingIn
 
 DEFAULT_QUAD_REWARD_SHAPING_SINGLE = dict(
     quad_rewards=dict(
-        pos=1.0, effort=0.05, spin=0.1, vel=1.0, crash=1.0, orient=1.0, yaw=0.0
+        pos=1.0, effort=0.05, spin=0.1, vel=0.0, crash=1.0, orient=1.0, yaw=0.0
     ),
 )
 
@@ -16,7 +16,7 @@ DEFAULT_QUAD_REWARD_SHAPING['quad_rewards'].update(dict(
 ))
 # Update for Dynamic Goal
 DEFAULT_QUAD_REWARD_SHAPING['quad_rewards'].update(dict(
-    omega=1.0,
+    vel=1.0, omega=1.0,
 ))
 
 
