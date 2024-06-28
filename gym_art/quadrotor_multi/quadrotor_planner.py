@@ -58,6 +58,7 @@ class traj_eval:
         self.yaw = yaw
         
     def as_nparray(self):
+        """ Returns a np array with the format: [x,y,z, vx, vy, vz, ax, ay, az, oroll, opitch, oyaw, yaw]"""
         return np.concatenate((self.pos, self.vel, self.acc, self.omega, np.array([self.yaw])))
 
     

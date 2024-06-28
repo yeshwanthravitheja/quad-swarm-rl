@@ -23,7 +23,7 @@ QUAD_COLOR = (
     # (1.0, 0.0, 1.0),  # Violet
 )
 
-OBST_COLOR_3 = (0., 0.5, 0.)
+OBST_COLOR_3 = (0., 0.5, 0., 1.)
 OBST_COLOR_4 = (0., 0.5, 0., 1.)
 
 

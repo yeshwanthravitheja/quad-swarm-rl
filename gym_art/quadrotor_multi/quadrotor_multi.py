@@ -3,7 +3,7 @@ import time
 from collections import deque
 from copy import deepcopy
 
-import gymnasium as gym
+import gymnasium as gym 
 import numpy as np
 
 from gym_art.quadrotor_multi.aerodynamics.downwash import perform_downwash
@@ -21,7 +21,7 @@ from gym_art.quadrotor_multi.scenarios.mix import create_scenario
 
 
 class QuadrotorEnvMulti(gym.Env):
-    def __init__(self, num_agents, ep_time, rew_coeff, obs_repr, obs_rel_rot,
+    def __init__(self, num_agents, ep_time, rew_coeff, obs_repr, obs_rel_rot, dynamic_goal,
                  # Neighbor
                  neighbor_visible_num, neighbor_obs_type, collision_hitbox_radius, collision_falloff_radius,
 
@@ -66,7 +66,7 @@ class QuadrotorEnvMulti(gym.Env):
                 dynamics_randomize_every=dynamics_randomize_every, dyn_sampler_1=dyn_sampler_1,
                 raw_control=raw_control, raw_control_zero_middle=raw_control_zero_middle, sense_noise=sense_noise,
                 init_random_state=init_random_state, obs_repr=obs_repr, ep_time=ep_time, room_dims=room_dims,
-                use_numba=use_numba, obs_rel_rot=obs_rel_rot,
+                use_numba=use_numba, obs_rel_rot=obs_rel_rot, dynamic_goal=dynamic_goal,
                 # Neighbor
                 num_agents=num_agents,
                 neighbor_obs_type=neighbor_obs_type, num_use_neighbor_obs=self.num_use_neighbor_obs,
@@ -91,7 +91,7 @@ class QuadrotorEnvMulti(gym.Env):
 
         # Reward
         self.rew_coeff = dict(
-            pos=1., effort=0.05, action_change=0., crash=1., orient=1., yaw=0., rot=0., attitude=0., spin=0.1, vel=0.,
+            pos=1., effort=0.05, action_change=0., crash=1., orient=1., yaw=0., omega=0., rot=0., attitude=0., spin=0.1, vel=0.,
             quadcol_bin=5., quadcol_bin_smooth_max=4., quadcol_bin_obst=5., quadcol_bin_obst_smooth_max=0.0,
         )
         rew_coeff_orig = copy.deepcopy(self.rew_coeff)
