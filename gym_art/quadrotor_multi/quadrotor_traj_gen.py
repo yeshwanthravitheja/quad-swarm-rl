@@ -248,7 +248,7 @@ if __name__ == "__main__":
 
     # Create an instance goal point for the initial state. 
     initial_state = traj_eval()
-    initial_state.set_initial_pos([0,0,0])
+    initial_state.set_initial_pos([0.9,-3.2,0.2])
     initial_state.set_initial_yaw(0)
     
     #Desired FINAL goal point
@@ -265,7 +265,7 @@ if __name__ == "__main__":
     # Get setpoint loops. This can be understood as the simulation steps.
     while(t < sim_time):  
 
-        t += 0.1
+        t += 0.005
         # Evaluate the next goal point based on the current simulation time (in seconds).
         next_goal = traj_gen.piecewise_eval(t)
 
