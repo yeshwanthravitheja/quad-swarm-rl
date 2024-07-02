@@ -39,6 +39,7 @@ class Scenario_o_static_same_goal(Scenario_o_base):
 
         self.start_point = self.generate_pos_obst_map_2(num_agents=self.num_agents)
         self.end_point = self.max_square_area_center()
+        self.end_point[2] = 0.65
 
         # Reset formation and related parameters
         self.update_formation_and_relate_param()

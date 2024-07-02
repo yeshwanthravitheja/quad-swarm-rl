@@ -36,7 +36,6 @@ class Scenario_o_random_dynamic_goal(Scenario_o_base):
 
         if tick <= self.duration_step:
             return
-       
 
         self.duration_step += int(self.envs[0].ep_time * self.envs[0].control_freq)
         
