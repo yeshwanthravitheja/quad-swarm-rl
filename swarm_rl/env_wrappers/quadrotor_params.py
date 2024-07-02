@@ -20,7 +20,8 @@ def add_quadrotors_env_args(env, parser):
     p.add_argument('--quads_obs_repr', default='xyz_vxyz_R_omega', type=str,
                    choices=['xyz_vxyz_R_omega', 'xyz_vxyz_R_omega_floor', 'xyz_vxyz_R_omega_wall'],
                    help='obs space for quadrotor self')
-    p.add_argument('--quads_obs_rel_rot', default=True, type=str2bool, help='use relative rotation or not')
+    p.add_argument('--quads_obs_rel_rot', default=False, type=str2bool, help='use relative rotation or not')
+    p.add_argument('--quads_dynamic_goal', default=True, type=str2bool, help='use relative observations for all states. Only for dynamic goal scenarios.')
     p.add_argument('--quads_episode_duration', default=15.0, type=float,
                    help='Override default value for episode duration')
     p.add_argument('--quads_encoder_type', default='corl', choices=['corl', 'attention'], type=str,
@@ -112,7 +113,7 @@ def add_quadrotors_env_args(env, parser):
                             'ep_lissajous3D', 'ep_rand_bezier', 'swarm_vs_swarm', 'swap_goals', 'dynamic_formations',
                             'mix', 'o_uniform_same_goal_spawn', 'o_random',
                             'o_dynamic_diff_goal', 'o_dynamic_same_goal', 'o_diagonal', 'o_static_same_goal',
-                            'o_static_diff_goal', 'o_swap_goals', 'o_ep_rand_bezier'],
+                            'o_static_diff_goal', 'o_swap_goals', 'o_ep_rand_bezier', 'o_random_dynamic_goal'],
                    help='Choose which scenario to run. ep = evader pursuit')
 
     # Room

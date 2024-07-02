@@ -233,7 +233,7 @@ def self_encoder_c_str(prefix, weight_names, bias_names):
     return method
 
 def obstacle_encoder_c_str(prefix, weight_names, bias_names):
-    method = f"""void obstacleEmbedder(const float obstacle_inputs[OBST_DIM]) {{
+    method = f"""void obstacleEmbedder(volatile float obstacle_inputs[OBST_DIM]) {{
             //reset embeddings accumulator to zero
             memset(obstacle_embeds, 0, sizeof(obstacle_embeds));
 
