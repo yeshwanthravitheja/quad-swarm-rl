@@ -3,21 +3,22 @@ from swarm_rl.runs.obstacles.single_drone.quad_obstacle_single_baseline import Q
 
 _params = ParamGrid(
     [
-        ("seed", [0000, 1111, 2222, 3333]),
-        ("quads_obstacle_tof_resolution", [4]),
+        ("seed", [0000, 3333]),
+        ("quads_obstacle_tof_resolution", [8]),
         ("quads_obst_grid_size_random", [True]),
-        ("normalize_input", [True]),
+        ("normalize_input", [False, True]),
     ]
 )
 
 OBSTACLE_MODEL_CLI = QUAD_BASELINE_CLI_1 + (
     ' --quads_obst_grid_size=0.5 --quads_obst_spawn_center=False --quads_obst_grid_size_range 0.5 0.8 '
+    '--quads_mode=o_random_dynamic_goal '
     '--with_wandb=True --wandb_project=Quad-Swarm-RL --wandb_user=multi-drones '
-    '--wandb_group=one_drone_md_normal_input'
+    '--wandb_group=darren_sd_mo_v1'
 )
 
 _experiment = Experiment(
-    "one_drone_random_grid_size",
+    "darren_sd_mo_v1",
     OBSTACLE_MODEL_CLI,
     _params.generate_params(randomize=False),
 )
