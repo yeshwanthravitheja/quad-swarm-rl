@@ -88,6 +88,7 @@ class QuadrotorEnvMulti(gym.Env):
         self.omega = np.zeros([self.num_agents, 3])
         self.rel_pos = np.zeros((self.num_agents, self.num_agents, 3))
         self.rel_vel = np.zeros((self.num_agents, self.num_agents, 3))
+        self.low_h_count = 0
 
         # Reward
         self.rew_coeff = dict(
@@ -457,6 +458,7 @@ class QuadrotorEnvMulti(gym.Env):
         self.agent_col_obst = np.ones(self.num_agents)
         self.reached_goal = [False for _ in range(len(self.envs))]
         self.hard_reached_goal = [False for _ in range(len(self.envs))]
+        self.low_h_count = 0
 
         # Rendering
         if self.quads_render:
@@ -702,6 +704,12 @@ class QuadrotorEnvMulti(gym.Env):
             self.all_collisions = {'drone': drone_col_matrix, 'ground': ground_collisions,
                                    'obstacle': obst_coll}
 
+        # Low height
+        if self.envs[0].tick >= self.collisions_grace_period_steps:
+            for i in range(self.num_agents):
+                if self.envs[i].dynamics.pos[2] < 0.2:
+                    self.low_h_count += 1
+
         # 7. DONES
         if any(dones):
             scenario_name = self.scenario.name()[9:]
@@ -739,6 +747,9 @@ class QuadrotorEnvMulti(gym.Env):
 
                         'xy_distance_to_goal_1s': np.mean(self.distance_to_goal_xy[i, int(-1 * self.control_freq):]),
                         'z_distance_to_goal_1s': np.mean(self.distance_to_goal_z[i, int(-1 * self.control_freq):]),
+
+                        'num_low_h': self.low_h_count / self.num_agents,
+                        f'{scenario_name}/num_low_h': self.low_h_count / self.num_agents,
 
                         f'{scenario_name}/distance_to_goal_1s': (1.0 / self.envs[0].dt) * np.mean(
                             self.distance_to_goal[i, int(-1 * self.control_freq):]),
