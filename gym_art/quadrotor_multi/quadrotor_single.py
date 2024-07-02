@@ -473,8 +473,8 @@ class QuadrotorSingle:
         elif self.dim_mode == '2D':
             y = self.goal[1]
         # Since being near the groud means crash we have to start above
-        if z < 0.05:
-            z = 0.05
+        if z < 0.5:
+            z = 0.5
         pos = npa(x, y, z)
 
         # INIT STATE
