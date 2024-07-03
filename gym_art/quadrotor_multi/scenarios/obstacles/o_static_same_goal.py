@@ -57,4 +57,4 @@ class Scenario_o_static_same_goal(Scenario_o_base):
 
         # Reassign goals
         self.spawn_points = copy.deepcopy(self.start_point)
-        self.goals = np.array([self.end_point for _ in range(self.num_agents)])
+        self.goals = copy.deepcopy(self.end_point)

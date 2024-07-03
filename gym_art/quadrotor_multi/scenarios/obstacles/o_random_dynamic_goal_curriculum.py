@@ -7,7 +7,7 @@ from gym_art.quadrotor_multi.quadrotor_traj_gen import QuadTrajGen
 from gym_art.quadrotor_multi.quadrotor_planner import traj_eval
 
 
-class Scenario_o_random_dynamic_goal(Scenario_o_base):
+class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
     """ This scenario implements a 13 dim goal that tracks a smooth polynomial trajectory. 
         Each goal point is evaluated through the polynomial generated per reset. This specific
         implementation increases the number of polynomial evaluations by the epoch of training."""
@@ -19,7 +19,7 @@ class Scenario_o_random_dynamic_goal(Scenario_o_base):
 
         # This value sets how many TOTAL goal points are to be evaluated during an episode. This does not include
         # the initial hover start point.
-        self.goal_curriculum = 3.0
+        self.goal_curriculum = 5.0
 
         #Tracks the required time between shifts in goal.
         self.goal_dt = []
@@ -39,7 +39,7 @@ class Scenario_o_random_dynamic_goal(Scenario_o_base):
         time = self.envs[0].sim_steps*tick*(self.envs[0].dt) #  Current time in seconds.
         
         for i in range(self.num_agents):
-            self.goal_time += self.envs[0].sim_steps*self.envs[0].dt
+            self.goal_time[i] += self.envs[0].sim_steps*self.envs[0].dt
 
             #change goals if we are within 1 time step
             if (abs(self.goal_time[i] - self.goal_dt[i]) < (self.envs[0].sim_steps*self.envs[0].dt)):
