@@ -94,13 +94,16 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
             self.goal_generator[i].plan_go_to_from(initial_state=initial_state, desired_state=np.append(final_goal, np.random.uniform(low=0, high=3.14)), 
                                                    duration=traj_duration, current_time=0)
             
-            #Change goal dt based on how close we are to the goal
-            if (len(distance_to_goal_metric[i]) != 0):
+            # Only start calculating curriculum if we have 10 policy rollouts.
+            if (len(distance_to_goal_metric[i]) == 10):
                 avg_distance = sum(distance_to_goal_metric[i]) / len(distance_to_goal_metric[i])            
-                print("Avg Dist: ",avg_distance)
+                
+                # We only start curriculum when the drone gets an average of 1 meter within the goal.
                 if (avg_distance <= 1.0):
-                    self.goal_curriculum[i] = 1 / (avg_distance)^10
-            
+                    
+                    #Change goal dt based on how close we are to the goal
+                    self.goal_curriculum[i] = int(1 / (avg_distance)^100)
+                    
             self.goal_dt[i] = (traj_duration / self.goal_curriculum[i])
 
             #Find the initial goal

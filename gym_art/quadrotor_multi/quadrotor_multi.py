@@ -403,7 +403,7 @@ class QuadrotorEnvMulti(gym.Env):
                     self.distance_to_goal_metric[i].pop(0)
                 self.distance_to_goal_metric[i].append(self.distance_to_goal_xy[i][-1] + self.distance_to_goal_z[i][-1])
             
-        self.use_curriculum = True
+
         # Scenario reset
         if self.use_obstacles:
             self.obstacles = MultiObstacles(obstacle_size=self.obst_size, quad_radius=self.quad_arm,
