@@ -20,6 +20,7 @@ class Scenario_o_static_same_goal(Scenario_o_base):
         return
 
     def reset(self, obst_map=None, cell_centers=None):
+        
         self.obstacle_map = obst_map
         self.cell_centers = cell_centers
         if obst_map is None or cell_centers is None:

@@ -19,10 +19,10 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
 
         # This value sets how many TOTAL goal points are to be evaluated during an episode. This does not include
         # the initial hover start point.
-        self.goal_curriculum = 5.0
+        self.goal_curriculum = [1.0] * self.num_agents
 
         #Tracks the required time between shifts in goal.
-        self.goal_dt = []
+        self.goal_dt = [0] * self.num_agents
 
         #Tracks the current time before a goal is changed. Init to all zeros.
         self.goal_time = [0] * self.num_agents
@@ -63,7 +63,7 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
         
         return
 
-    def reset(self, obst_map, cell_centers): 
+    def reset(self, obst_map, cell_centers, distance_to_goal_metric): 
   
         self.obstacle_map = obst_map
         self.cell_centers = cell_centers
@@ -94,10 +94,20 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
             self.goal_generator[i].plan_go_to_from(initial_state=initial_state, desired_state=np.append(final_goal, np.random.uniform(low=0, high=3.14)), 
                                                    duration=traj_duration, current_time=0)
             
-            self.goal_dt.append(traj_duration / self.goal_curriculum)
+            #Change goal dt based on how close we are to the goal
+            if (len(distance_to_goal_metric[i]) != 0):
+                avg_distance = sum(distance_to_goal_metric[i]) / len(distance_to_goal_metric[i])            
+                print("Avg Dist: ",avg_distance)
+                if (avg_distance <= 1.0):
+                    self.goal_curriculum[i] = 1 / (avg_distance)^10
+            
+            self.goal_dt[i] = (traj_duration / self.goal_curriculum[i])
 
             #Find the initial goal
-            self.end_point.append(self.goal_generator[i].piecewise_eval(0).as_nparray())
+            if (self.goal_curriculum[i] > 1):
+                self.end_point.append(self.goal_generator[i].piecewise_eval(0).as_nparray())
+            else:
+                self.end_point.append(self.goal_generator[i].piecewise_eval(self.envs[i].ep_time).as_nparray())
         
         self.duration_step = int(np.random.uniform(low=2.0, high=4.0) * self.envs[0].control_freq)
         self.update_formation_and_relate_param()

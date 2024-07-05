@@ -38,6 +38,10 @@ class QuadrotorEnvMulti(gym.Env):
                  dynamics_params, raw_control, raw_control_zero_middle,
                  dynamics_randomize_every, dynamics_change, dyn_sampler_1,
                  sense_noise, init_random_state,
+                                  
+                 # Scenario Curriculum
+                 use_curriculum,
+                 
                  # Rendering
                  render_mode='human'
                  ):
@@ -223,6 +227,10 @@ class QuadrotorEnvMulti(gym.Env):
 
         # Others
         self.apply_collision_force = True
+        
+        #Curriculum Metric
+        self.use_curriculum = use_curriculum
+        self.distance_to_goal_metric = [[] for _ in range(len(self.envs))]
 
     def all_dynamics(self):
         return tuple(e.dynamics for e in self.envs)
@@ -386,7 +394,16 @@ class QuadrotorEnvMulti(gym.Env):
             self.obst_density = obst_density
         if obst_size:
             self.obst_size = obst_size
-
+            
+        # Curriculum Statistics
+        for i in range(self.num_agents):
+            if len(self.distance_to_goal_xy[i]) != 0:
+                
+                if len(self.distance_to_goal_metric[i]) == 10:
+                    self.distance_to_goal_metric[i].pop(0)
+                self.distance_to_goal_metric[i].append(self.distance_to_goal_xy[i][-1] + self.distance_to_goal_z[i][-1])
+            
+        self.use_curriculum = True
         # Scenario reset
         if self.use_obstacles:
             self.obstacles = MultiObstacles(obstacle_size=self.obst_size, quad_radius=self.quad_arm,
@@ -397,7 +414,14 @@ class QuadrotorEnvMulti(gym.Env):
                 self.grid_size = np.round(tmp_grid_size, 1)
 
             self.obst_map, obst_pos_arr, cell_centers = self.obst_generation_given_density()
-            self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers)
+              # Scenario based curriculum
+            if (self.use_curriculum):
+                self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers, 
+                                    distance_to_goal_metric=self.distance_to_goal_metric)
+            else:
+                self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers)
+            
+          
         else:
             self.scenario.reset()
 
@@ -447,7 +471,7 @@ class QuadrotorEnvMulti(gym.Env):
         self.prev_crashed_walls = []
         self.prev_crashed_ceiling = []
         self.prev_crashed_room = []
-
+        
         # Log
         # # Final Distance (1s / 3s / 5s)
         self.distance_to_goal = [[] for _ in range(len(self.envs))]
@@ -465,7 +489,7 @@ class QuadrotorEnvMulti(gym.Env):
             self.reset_scene = True
             self.quads_formation_size = self.scenario.formation_size
             self.all_collisions = {val: [0.0 for _ in range(len(self.envs))] for val in ['drone', 'ground', 'obstacle']}
-
+        
         return obs
 
     def step(self, actions):
@@ -606,6 +630,7 @@ class QuadrotorEnvMulti(gym.Env):
                 infos[i]["rewards"]["rew_quadcol_obstacle"] = rew_collisions_obst_quad[i]
                 infos[i]["rewards"]["rewraw_quadcol_obstacle"] = rew_obst_quad_collisions_raw[i]
                 infos[i]["rewards"]["rew_obst_proximity"] = rew_obst_proximity[i]
+                
 
             self.distance_to_goal[i].append(-infos[i]["rewards"]["rewraw_pos"])
             self.distance_to_goal_xy[i].append(np.linalg.norm(obs[i][:2]))
