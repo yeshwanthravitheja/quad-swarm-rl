@@ -407,7 +407,7 @@ class QuadrotorEnvMulti(gym.Env):
         # Everytime we reset, increase the episode count by one.
         self.curriculum_episdode_count += 1
             
-
+        self.use_curriculum = True
         # Scenario reset
         if self.use_obstacles:
             self.obstacles = MultiObstacles(obstacle_size=self.obst_size, quad_radius=self.quad_arm,

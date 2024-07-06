@@ -31,8 +31,9 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
         # In this case, we want to force curriculum.
         self.begin_curriculum = False
 
-    def __round_dt(x, prec=2, base=self.envs[0].sim_steps*self.envs[0].dt):
-        """ Rounds to nearest decimal with precision."""
+    def __round_dt(self, x, prec=2):
+        base=self.envs[0].sim_steps*self.envs[0].dt
+        """ Rounds to nearest base decimal with precision."""
         return round(base * round(float(x)/base),prec)
 
         
@@ -110,7 +111,7 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
 
                     if ((curriculum_episdode_count % 10) == 0):
                         self.goal_curriculum[i] += 1
-           
+                        
             # DISTANCE BASED GOAL CURRICULUM
             # Only start calculating curriculum if we have 10 policy rollouts.
             # if (len(distance_to_goal_metric[i]) == 10):
@@ -123,7 +124,6 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
             #         self.goal_curriculum[i] = int(1 / (avg_distance)^100)
                     
             self.goal_dt[i] = self.__round_dt(traj_duration / self.goal_curriculum[i])
-
             #Find the initial goal
             if (self.begin_curriculum):
                 self.end_point.append(self.goal_generator[i].piecewise_eval(0).as_nparray())
