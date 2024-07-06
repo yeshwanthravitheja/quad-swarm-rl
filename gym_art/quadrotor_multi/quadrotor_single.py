@@ -50,26 +50,26 @@ def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, 
         if on_floor:
             cost_orient_raw = 3.0
         else:
-            if dynamic_goal:
-                tmp_rot = scipy_rotation.from_matrix(dynamics.rot)
-                rot_yaw, rot_pitch, rot_roll = tmp_rot.as_euler('zxy', degrees=False)
-                
-                # Dynamic goal only contains relative yaw information
-                rel_yaw = abs(rot_yaw - goal[12])
-                
-                cost_orient_raw = rel_yaw
-            else:
-                tmp_rot = scipy_rotation.from_matrix(dynamics.rot)
-                tmp_base_rot = scipy_rotation.from_matrix(base_rot)
+            # if dynamic_goal:
+            #     tmp_rot = scipy_rotation.from_matrix(dynamics.rot)
+            #     rot_yaw, rot_pitch, rot_roll = tmp_rot.as_euler('zxy', degrees=False)
+            #
+            #     # Dynamic goal only contains relative yaw information
+            #     rel_yaw = abs(rot_yaw - goal[12])
+            #
+            #     cost_orient_raw = rel_yaw
+            # else:
+            tmp_rot = scipy_rotation.from_matrix(dynamics.rot)
+            tmp_base_rot = scipy_rotation.from_matrix(base_rot)
 
-                # Extract the roll, pitch, and yaw angles
-                rot_yaw, rot_pitch, rot_roll = tmp_rot.as_euler('zxy', degrees=False)
-                base_yaw, base_pitch, base_roll = tmp_base_rot.as_euler('zxy', degrees=False)
+            # Extract the roll, pitch, and yaw angles
+            rot_yaw, rot_pitch, rot_roll = tmp_rot.as_euler('zxy', degrees=False)
+            base_yaw, base_pitch, base_roll = tmp_base_rot.as_euler('zxy', degrees=False)
 
-                rel_yaw, rel_pitch, rel_roll = abs(rot_yaw - base_yaw), abs(rot_pitch - base_pitch), abs(rot_roll - base_roll)
-                rel_yaw, rel_pitch, rel_roll = rel_yaw / np.pi, rel_pitch / np.pi, rel_roll / np.pi
+            rel_yaw, rel_pitch, rel_roll = abs(rot_yaw - base_yaw), abs(rot_pitch - base_pitch), abs(rot_roll - base_roll)
+            rel_yaw, rel_pitch, rel_roll = rel_yaw / np.pi, rel_pitch / np.pi, rel_roll / np.pi
 
-                cost_orient_raw = rel_yaw + rel_pitch + rel_roll
+            cost_orient_raw = rel_yaw + rel_pitch + rel_roll
     else:
         if on_floor:
             cost_orient_raw = 1.0
@@ -79,21 +79,22 @@ def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, 
 
     # Loss for constant uncontrolled rotation around vertical axis
     cost_spin_raw = (dynamics.omega[0] ** 2 + dynamics.omega[1] ** 2 + dynamics.omega[2] ** 2) ** 0.5
-    
-    if dynamic_goal:
-        # Goal is given as omega in roll, pitch, yaw axis
-        cost_omega_raw = abs(dynamics.omega[0] - goal[9]) + abs(dynamics.omega[1]  - goal[10]) + abs(dynamics.omega[2] - goal[11])
-        cost_omega = rew_coeff["omega"] * cost_omega_raw
-    else:
-        cost_omega = 0
-        
-    if dynamic_goal:
-        cost_vel_raw = abs(dynamics.vel[0] - goal[3]) + abs(dynamics.vel[1] - goal[4]) + abs(dynamics.vel[2] - goal[5])   
-        cost_vel = rew_coeff["vel"] * cost_vel_raw
-    else:
-        cost_vel = 0
-        
     cost_spin = rew_coeff["spin"] * cost_spin_raw
+
+    # if dynamic_goal:
+    #     # Goal is given as omega in roll, pitch, yaw axis
+    #     cost_omega_raw = abs(dynamics.omega[0] - goal[9]) + abs(dynamics.omega[1]  - goal[10]) + abs(dynamics.omega[2] - goal[11])
+    #     cost_omega = rew_coeff["omega"] * cost_omega_raw
+    # else:
+    #     cost_omega = 0
+    cost_omega = 0
+        
+    # if dynamic_goal:
+    #     cost_vel_raw = abs(dynamics.vel[0] - goal[3]) + abs(dynamics.vel[1] - goal[4]) + abs(dynamics.vel[2] - goal[5])
+    #     cost_vel = rew_coeff["vel"] * cost_vel_raw
+    # else:
+    #     cost_vel = 0
+    cost_vel = 0
 
     # Loss crash for staying on the floor
     cost_crash_raw = float(on_floor)
