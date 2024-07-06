@@ -345,6 +345,7 @@ class QuadrotorSingle:
             "xyz": [-room_range, room_range],
             "xyzr": [-room_range, room_range],
             "vxyz": [-self.dynamics.vxyz_max * np.ones(3), self.dynamics.vxyz_max * np.ones(3)],
+            "wvxyz": [-self.dynamics.vxyz_max * np.ones(3), self.dynamics.vxyz_max * np.ones(3)],
             "vxyzr": [-self.dynamics.vxyz_max * np.ones(3), self.dynamics.vxyz_max * np.ones(3)],
             "acc": [-self.dynamics.acc_max * np.ones(3), self.dynamics.acc_max * np.ones(3)],
             "R": [-np.ones(9), np.ones(9)],
