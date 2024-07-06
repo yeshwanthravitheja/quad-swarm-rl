@@ -14,4 +14,3 @@ _results
 *.egg-info/
 train_dir/
 wandb/
-.DS_Store

@@ -630,7 +630,6 @@ class QuadrotorEnvMulti(gym.Env):
                 infos[i]["rewards"]["rew_quadcol_obstacle"] = rew_collisions_obst_quad[i]
                 infos[i]["rewards"]["rewraw_quadcol_obstacle"] = rew_obst_quad_collisions_raw[i]
                 infos[i]["rewards"]["rew_obst_proximity"] = rew_obst_proximity[i]
-                
 
             self.distance_to_goal[i].append(-infos[i]["rewards"]["rewraw_pos"])
             self.distance_to_goal_xy[i].append(np.linalg.norm(obs[i][:2]))

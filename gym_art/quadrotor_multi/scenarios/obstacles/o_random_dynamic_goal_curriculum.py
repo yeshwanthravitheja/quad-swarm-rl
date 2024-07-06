@@ -10,7 +10,7 @@ from gym_art.quadrotor_multi.quadrotor_planner import traj_eval
 class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
     """ This scenario implements a 13 dim goal that tracks a smooth polynomial trajectory. 
         Each goal point is evaluated through the polynomial generated per reset. This specific
-        implementation increases the number of polynomial evaluations by the epoch of training."""
+        implementation increases the number of polynomial evaluations by the success of training."""
         
     def __init__(self, quads_mode, envs, num_agents, room_dims):
         super().__init__(quads_mode, envs, num_agents, room_dims)
@@ -54,12 +54,6 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
             
         for i, env in enumerate(self.envs):
             env.goal = self.end_point[i]
-
-        if tick <= self.duration_step:
-            return
-       
-
-        self.duration_step += int(self.envs[0].ep_time * self.envs[0].control_freq)
         
         return
 
@@ -101,7 +95,7 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
                 # We only start curriculum when the drone gets an average of 1 meter within the goal.
                 if (avg_distance <= 1.0):
                     
-                    #Change goal dt based on how close we are to the goal
+                    #Change number of goal points based on average distance to goal for recent rollouts.
                     self.goal_curriculum[i] = int(1 / (avg_distance)^100)
                     
             self.goal_dt[i] = (traj_duration / self.goal_curriculum[i])
@@ -112,7 +106,6 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
             else:
                 self.end_point.append(self.goal_generator[i].piecewise_eval(self.envs[i].ep_time).as_nparray())
         
-        self.duration_step = int(np.random.uniform(low=2.0, high=4.0) * self.envs[0].control_freq)
         self.update_formation_and_relate_param()
 
         self.formation_center = np.array((0., 0., 2.))
