@@ -6,7 +6,7 @@ _params = ParamGrid(
         ("seed", [0000, 3333]),
         ("quads_obstacle_tof_resolution", [8]),
         ("quads_obst_grid_size_random", [True]),
-        ("normalize_input", [False, True]),
+        ("normalize_input", [False]),
     ]
 )
 

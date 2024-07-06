@@ -19,9 +19,9 @@ class MultiObstacles:
         self.prev = None
         self.tick = 0
         if self.num_rays == 4:
-            self.sample_freq = 3
+            self.sample_freq = 1
         else:
-            self.sample_freq = 6
+            self.sample_freq = 1
 
     def reset(self, obs, quads_pos, pos_arr, quads_rots=None):
         self.pos_arr = copy.deepcopy(np.array(pos_arr))
