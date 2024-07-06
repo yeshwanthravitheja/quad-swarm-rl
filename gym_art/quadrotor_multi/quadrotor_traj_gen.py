@@ -274,7 +274,7 @@ if __name__ == "__main__":
         # if (traj_gen.plan_finished(t)):
         #     traj_gen.plan_go_to_from(initial_state=next_goal, desired_state=[0, 0, 0.65, 0], duration=duration, current_time=t)
         #     plan_stale = False
-
+    next_goal = traj_gen.piecewise_eval(15)
     print("Final State: ", total_traj[-1])
 
 

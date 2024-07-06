@@ -9,11 +9,7 @@ from gym_art.quadrotor_multi.quadrotor_planner import traj_eval
 class Scenario_o_static_same_goal(Scenario_o_base):
     def __init__(self, quads_mode, envs, num_agents, room_dims):
         """ This scenario implements a 13 dim goal that tracks a smooth polynomial trajectory. For a static goal, we
-<<<<<<< HEAD
-            use only the last time point as a goal. This would mean all derivatives and higher order derivatives would 
-=======
             use only the last time point as a goal. This would mean all derivatives and higher order derivatives would
->>>>>>> 630fc5f20a9429dabf2359c99cd728650dc577f5
             be zero. """
         super().__init__(quads_mode, envs, num_agents, room_dims)
         self.approch_goal_metric = 0.5

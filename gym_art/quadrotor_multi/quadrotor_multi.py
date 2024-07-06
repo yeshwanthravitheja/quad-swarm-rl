@@ -230,7 +230,8 @@ class QuadrotorEnvMulti(gym.Env):
         
         #Curriculum Metric
         self.use_curriculum = use_curriculum
-        self.distance_to_goal_metric = [[] for _ in range(len(self.envs))]
+        self.distance_to_goal_metric = [[] for _ in range(len(self.envs))] #Tracks the distance to goal for last 10 episode_extra_stats
+        self.curriculum_episdode_count = 0 #Tracks the number of episodes that have been run before we add another goal point. This number should be the same for all drones.
 
     def all_dynamics(self):
         return tuple(e.dynamics for e in self.envs)
@@ -402,6 +403,9 @@ class QuadrotorEnvMulti(gym.Env):
                 if len(self.distance_to_goal_metric[i]) == 10:
                     self.distance_to_goal_metric[i].pop(0)
                 self.distance_to_goal_metric[i].append(self.distance_to_goal_xy[i][-1] + self.distance_to_goal_z[i][-1])
+
+        # Everytime we reset, increase the episode count by one.
+        self.curriculum_episdode_count += 1
             
 
         # Scenario reset
@@ -417,7 +421,8 @@ class QuadrotorEnvMulti(gym.Env):
               # Scenario based curriculum
             if (self.use_curriculum):
                 self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers, 
-                                    distance_to_goal_metric=self.distance_to_goal_metric)
+                                    distance_to_goal_metric=self.distance_to_goal_metric,
+                                    curriculum_episdode_count=self.curriculum_episdode_count)
             else:
                 self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers)
             
@@ -471,7 +476,7 @@ class QuadrotorEnvMulti(gym.Env):
         self.prev_crashed_walls = []
         self.prev_crashed_ceiling = []
         self.prev_crashed_room = []
-        
+
         # Log
         # # Final Distance (1s / 3s / 5s)
         self.distance_to_goal = [[] for _ in range(len(self.envs))]
