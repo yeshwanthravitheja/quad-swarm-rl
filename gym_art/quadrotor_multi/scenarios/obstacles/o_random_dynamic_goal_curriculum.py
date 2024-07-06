@@ -23,10 +23,7 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
 
         #Tracks the required time between shifts in goal.
         self.goal_dt = [0] * self.num_agents
-
-        #Tracks the current time before a goal is changed. Init to all zeros.
-        self.goal_time = [0] * self.num_agents
-
+        
         #Tracks whether curriculum has started. When curriculum starts, there may be a chance the drones performance drops. 
         # In this case, we want to force curriculum.
         self.begin_curriculum = False
@@ -48,10 +45,7 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
         time = self.envs[0].sim_steps*tick*(self.envs[0].dt) #  Current time in seconds.
         
         for i in range(self.num_agents):
-            # self.goal_time[i] += self.envs[0].sim_steps*self.envs[0].dt
-
-            # change goals if we are within 1 time step
-            # if (abs(self.goal_time[i] - self.goal_dt[i]) < (self.envs[0].sim_steps*self.envs[0].dt)):
+            
             if (time % self.goal_dt[i] == 0):
 
                 next_goal = self.goal_generator[i].piecewise_eval(time)
@@ -124,6 +118,7 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
             #         self.goal_curriculum[i] = int(1 / (avg_distance)^100)
                     
             self.goal_dt[i] = self.__round_dt(traj_duration / self.goal_curriculum[i])
+            
             #Find the initial goal
             if (self.begin_curriculum):
                 self.end_point.append(self.goal_generator[i].piecewise_eval(0).as_nparray())
