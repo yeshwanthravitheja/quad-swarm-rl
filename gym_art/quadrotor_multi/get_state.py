@@ -58,6 +58,33 @@ def state_xyz_vxyz_R_omega_wvxyz(self):
                            omega - self.goal[9:12],
                            vel])
 
+def state_xyz_vxyz_R_omega_wvxyz_womega(self):
+    if self.use_numba:
+        pos, vel, rot, omega, acc = self.sense_noise.add_noise_numba(
+            self.dynamics.pos,
+            self.dynamics.vel,
+            self.dynamics.rot,
+            self.dynamics.omega,
+            self.dynamics.accelerometer,
+            self.dt
+        )
+    else:
+        pos, vel, rot, omega, acc = self.sense_noise.add_noise(
+            pos=self.dynamics.pos,
+            vel=self.dynamics.vel,
+            rot=self.dynamics.rot,
+            omega=self.dynamics.omega,
+            acc=self.dynamics.accelerometer,
+            dt=self.dt
+        )
+
+    return np.concatenate([pos - self.goal[:3],
+                           vel - self.goal[3:6],
+                           rot.flatten() - self.base_rot.flatten(),
+                           omega - self.goal[9:12],
+                           vel,
+                           omega])
+
 def state_xyz_vxyz_R_omega_floor(self):
     if self.use_numba:
         pos, vel, rot, omega, acc = self.sense_noise.add_noise_numba(

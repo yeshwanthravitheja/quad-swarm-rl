@@ -350,6 +350,7 @@ class QuadrotorSingle:
             "acc": [-self.dynamics.acc_max * np.ones(3), self.dynamics.acc_max * np.ones(3)],
             "R": [-np.ones(9), np.ones(9)],
             "omega": [-self.dynamics.omega_max * np.ones(3), self.dynamics.omega_max * np.ones(3)],
+            "womega": [-self.dynamics.omega_max * np.ones(3), self.dynamics.omega_max * np.ones(3)],
             "t2w": [0. * np.ones(1), 5. * np.ones(1)],
             "t2t": [0. * np.ones(1), 1. * np.ones(1)],
             "h": [0. * np.ones(1), self.room_box[1][2] * np.ones(1)],

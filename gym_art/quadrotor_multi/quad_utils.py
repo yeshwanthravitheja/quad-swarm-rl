@@ -32,6 +32,7 @@ QUADS_OBS_REPR = {
     'xyz_vxyz_R_omega_floor': 19,
     'xyz_vxyz_R_omega_wall': 24,
     'xyz_vxyz_R_omega_wvxyz': 21,
+    'xyz_vxyz_R_omega_wvxyz_womega': 24,
 }
 
 QUADS_NEIGHBOR_OBS_TYPE = {

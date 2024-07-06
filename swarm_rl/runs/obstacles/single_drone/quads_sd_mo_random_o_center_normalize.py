@@ -14,11 +14,11 @@ OBSTACLE_MODEL_CLI = QUAD_BASELINE_CLI_1 + (
     ' --quads_obst_grid_size=0.5 --quads_obst_spawn_center=False --quads_obst_grid_size_range 0.5 0.8 '
     '--quads_mode=o_static_same_goal --quads_obs_rel_rot=False --quads_dynamic_goal=True '
     '--with_wandb=True --wandb_project=Quad-Swarm-RL --wandb_user=multi-drones '
-    '--wandb_group=darren_sd_mo_static_mod_obs_v5 --quads_obs_repr=xyz_vxyz_R_omega_wvxyz'
+    '--wandb_group=darren_sd_mo_static_mod_obs_v6 --quads_obs_repr=xyz_vxyz_R_omega_wvxyz_womega'
 )
 
 _experiment = Experiment(
-    "darren_sd_mo_static_mod_obs_v5",
+    "darren_sd_mo_static_mod_obs_v6",
     OBSTACLE_MODEL_CLI,
     _params.generate_params(randomize=False),
 )
