@@ -24,7 +24,10 @@ def state_xyz_vxyz_R_omega(self):
         )
 
     if self.dynamic_goal:
-        return np.concatenate([pos - self.goal[:3], vel - self.goal[3:6], rot.flatten() - self.base_rot.flatten(), omega - self.goal[9:12]])
+        tmp_rot = scipy_rotation.from_matrix(rot)
+        rot_yaw,_ ,_ = tmp_rot.as_euler('zxy', degrees=False)
+        return np.concatenate([pos - self.goal[:3], vel - self.goal[3:6], rot_yaw - self.goal[12], omega - self.goal[9:12]])
+        # return np.concatenate([pos - self.goal[:3], vel - self.goal[3:6], rot.flatten() - self.base_rot.flatten(), omega - self.goal[9:12]])
     else:
         if self.obs_rel_rot:
             return np.concatenate([pos - self.goal[:3], vel, rot.flatten() - self.base_rot.flatten(), omega])
