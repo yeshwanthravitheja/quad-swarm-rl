@@ -5,17 +5,15 @@ import copy
 from gym_art.quadrotor_multi.scenarios.obstacles.o_base import Scenario_o_base
 from gym_art.quadrotor_multi.quadrotor_traj_gen import QuadTrajGen
 from gym_art.quadrotor_multi.quadrotor_planner import traj_eval
-from sample_factory.envs.env_utils import TrainingInfoInterface
 
 
-class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base, TrainingInfoInterface):
+class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
     """ This scenario implements a 13 dim goal that tracks a smooth polynomial trajectory. 
         Each goal point is evaluated through the polynomial generated per reset. This specific
         implementation increases the number of polynomial evaluations by the success of training."""
         
     def __init__(self, quads_mode, envs, num_agents, room_dims):
         super().__init__(quads_mode, envs, num_agents, room_dims)
-        TrainingInfoInterface.__init__(self)
         self.approch_goal_metric = 0.5
         self.goal_generator = []
 
@@ -40,26 +38,28 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base, TrainingInfoInt
         pass
 
     def step(self):
-        self.update_formation_and_relate_param()
-
-        tick = self.envs[0].tick
-        
-        time = self.envs[0].sim_steps*tick*(self.envs[0].dt) #  Current time in seconds.
-        
-        for i in range(self.num_agents):
+        if (self.begin_curriculum):
             
-            if (time % self.goal_dt[i] == 0):
+            self.update_formation_and_relate_param()
 
-                next_goal = self.goal_generator[i].piecewise_eval(time)
-        
-                self.end_point[i] = next_goal.as_nparray()
-
-                self.goals = copy.deepcopy(self.end_point)
-
-                # self.goal_time[i] = 0
+            tick = self.envs[0].tick
             
-        for i, env in enumerate(self.envs):
-            env.goal = self.end_point[i]
+            time = self.envs[0].sim_steps*tick*(self.envs[0].dt) #  Current time in seconds.
+            
+            for i in range(self.num_agents):
+                
+                if (time % self.goal_dt[i] == 0):
+
+                    next_goal = self.goal_generator[i].piecewise_eval(time)
+            
+                    self.end_point[i] = next_goal.as_nparray()
+
+                    self.goals = copy.deepcopy(self.end_point)
+
+                    # self.goal_time[i] = 0
+                
+            for i, env in enumerate(self.envs):
+                env.goal = self.end_point[i]
         
         return
 
@@ -94,23 +94,19 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base, TrainingInfoInt
             self.goal_generator[i].plan_go_to_from(initial_state=initial_state, desired_state=np.append(final_goal, np.random.uniform(low=0, high=3.14)), 
                                                    duration=traj_duration, current_time=0)
             
-
-            approx_total_training_steps = self.training_info.get('approx_total_training_steps', 0)
-
-
             # EPISODE BASED GOAL CURRICULUM
             if (len(distance_to_goal_metric[i]) == 10):
                 avg_distance = sum(distance_to_goal_metric[i]) / len(distance_to_goal_metric[i])
 
-                # We only start curriculum when the drone gets an average of 1 meter within the goal for the past 10 episodes.
-                if (avg_distance <= 1.0) or (self.begin_curriculum):
+                # We only start curriculum when the drone gets an average of 0.5 meter within the goal for the past 10 episodes.
+                if (avg_distance <= 0.5) or (self.begin_curriculum):
 
                     # When the avg distance becomes less than 1, we want to ALWAYS use curriculum.
                     # Even if the drones performance drops in the beginning of curriculum
                     self.begin_curriculum = True
                     
-                    # Add one goal per 1 million training steps
-                    if ((approx_total_training_steps % 10^9) == 0):
+                    # Add one goal per 10 episodes
+                    if ((curriculum_episdode_count % 10) == 0):
                         self.goal_curriculum[i] += 1
                         
             # DISTANCE BASED GOAL CURRICULUM
