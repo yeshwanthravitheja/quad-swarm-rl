@@ -43,9 +43,11 @@ class Scenario_o_static_same_goal(Scenario_o_base):
             
             # Fix the goal height at 0.65 m
             final_goal[2] = 0.65
+            traj_duration = np.random.uniform(low=2, high=self.envs[0].ep_time-1)
+            
             # Generate trajectory with random time from (2, ep_time)
             self.goal_generator[i].plan_go_to_from(initial_state=initial_state, desired_state=np.append(final_goal, np.random.uniform(low=0, high=3.14)), 
-                                                   duration=np.random.uniform(low=2, high=self.envs[0].ep_time), current_time=0)
+                                                   duration=traj_duration, current_time=0)
             
             #Find the initial goal
             self.end_point.append(self.goal_generator[i].piecewise_eval(self.envs[0].ep_time).as_nparray())

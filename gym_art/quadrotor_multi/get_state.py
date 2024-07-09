@@ -1,5 +1,5 @@
 import numpy as np
-
+from scipy.spatial.transform import Rotation as scipy_rotation
 
 # NOTE: the state_* methods are static because otherwise getattr memorizes self
 

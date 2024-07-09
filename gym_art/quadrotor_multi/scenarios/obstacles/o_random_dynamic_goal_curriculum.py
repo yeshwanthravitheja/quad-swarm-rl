@@ -88,7 +88,7 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base, TrainingInfoInt
             
             # Fix the goal height at 0.65 m
             final_goal[2] = 0.65
-            traj_duration = np.random.uniform(low=2, high=self.envs[0].ep_time)
+            traj_duration = np.random.uniform(low=2, high=self.envs[0].ep_time-1)
 
             # Generate trajectory with random time from (2, ep_time)
             self.goal_generator[i].plan_go_to_from(initial_state=initial_state, desired_state=np.append(final_goal, np.random.uniform(low=0, high=3.14)), 
@@ -97,7 +97,7 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base, TrainingInfoInt
 
             approx_total_training_steps = self.training_info.get('approx_total_training_steps', 0)
 
-            print(approx_total_training_steps)
+
             # EPISODE BASED GOAL CURRICULUM
             if (len(distance_to_goal_metric[i]) == 10):
                 avg_distance = sum(distance_to_goal_metric[i]) / len(distance_to_goal_metric[i])
@@ -108,8 +108,9 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base, TrainingInfoInt
                     # When the avg distance becomes less than 1, we want to ALWAYS use curriculum.
                     # Even if the drones performance drops in the beginning of curriculum
                     self.begin_curriculum = True
-
-                    if ((curriculum_episdode_count % 10) == 0):
+                    
+                    # Add one goal per 1 million training steps
+                    if ((approx_total_training_steps % 10^9) == 0):
                         self.goal_curriculum[i] += 1
                         
             # DISTANCE BASED GOAL CURRICULUM
