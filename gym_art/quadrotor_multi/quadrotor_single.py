@@ -33,8 +33,8 @@ GRAV = 9.81  # default gravitational constant
 
 
 # reasonable reward function for hovering at a goal and not flying too high
-def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, action_prev, on_floor=False,
-                            obs_rel_rot=False, base_rot=np.eye(3), dynamic_goal=False, curriculum_state):
+def compute_reward_weighted(dynamics, goal, action, dt, time_remain, rew_coeff, action_prev, curriculum_state, on_floor=False,
+                            obs_rel_rot=False, base_rot=np.eye(3), dynamic_goal=False):
     if (curriculum_state):
         rew_coeff["omega"] = 0.05
         rew_coeff["vel"] = 0.05
