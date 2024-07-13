@@ -34,7 +34,6 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
                 time = self.envs[0].sim_steps*tick*(self.envs[0].dt) #  Current time in seconds.
 
                 next_goal = self.goal_generator[i].piecewise_eval(time)
-        
                 self.end_point[i] = next_goal.as_nparray()
 
                 self.goals = copy.deepcopy(self.end_point)
@@ -69,10 +68,17 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
             
             # Fix the goal height at 0.65 m
             final_goal[2] = 0.65
-            traj_duration = np.random.uniform(low=2, high=self.envs[0].ep_time-2)
+            
+            dist = np.linalg.norm(self.start_point[i] - final_goal)
+            
+            traj_duration = np.random.uniform(low = dist / 1.5, high=self.envs[0].ep_time-1)
 
+            # Fixate trajectory duration
+            traj_duration = dist 
+   
+            goal_yaw = np.random.uniform(low=0, high=3.14/2)
             # Generate trajectory with random time from (2, ep_time)
-            self.goal_generator[i].plan_go_to_from(initial_state=initial_state, desired_state=np.append(final_goal, np.random.uniform(low=0, high=3.14)), 
+            self.goal_generator[i].plan_go_to_from(initial_state=initial_state, desired_state=np.append(final_goal, goal_yaw), 
                                                    duration=traj_duration, current_time=0)
             
             #Find the initial goal
