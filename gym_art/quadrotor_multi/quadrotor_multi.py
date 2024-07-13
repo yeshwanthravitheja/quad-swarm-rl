@@ -18,9 +18,10 @@ from gym_art.quadrotor_multi.obstacles.obstacles import MultiObstacles
 from gym_art.quadrotor_multi.quadrotor_multi_visualization import Quadrotor3DSceneMulti
 from gym_art.quadrotor_multi.quadrotor_single import QuadrotorSingle
 from gym_art.quadrotor_multi.scenarios.mix import create_scenario
+from sample_factory.envs.env_utils import TrainingInfoInterface
 
 
-class QuadrotorEnvMulti(gym.Env):
+class QuadrotorEnvMulti(gym.Env, TrainingInfoInterface):
     def __init__(self, num_agents, ep_time, rew_coeff, obs_repr, obs_rel_rot, dynamic_goal,
                  # Neighbor
                  neighbor_visible_num, neighbor_obs_type, collision_hitbox_radius, collision_falloff_radius,
@@ -46,6 +47,7 @@ class QuadrotorEnvMulti(gym.Env):
                  render_mode='human'
                  ):
         super().__init__()
+        TrainingInfoInterface.__init__(self)
 
         # Predefined Parameters
         self.num_agents = num_agents
@@ -413,17 +415,21 @@ class QuadrotorEnvMulti(gym.Env):
                     
                     # Curriculum Statistics
                     if len(self.distance_to_goal_xy[i]) != 0: #Only append if we have data
-                        if len(self.distance_to_goal_metric[i]) == 10:
+                        if len(self.distance_to_goal_metric[i]) == 20:
                             self.distance_to_goal_metric[i].pop(0)
-                        self.distance_to_goal_metric[i].append(self.distance_to_goal_xy[i][-1] + self.distance_to_goal_z[i][-1])
+                        self.distance_to_goal_metric[i].append(abs(self.distance_to_goal_xy[i][-1]) + abs(self.distance_to_goal_z[i][-1]))
                     
-                    if (len(self.distance_to_goal_metric[i]) == 10):
+                    if (len(self.distance_to_goal_metric[i]) == 20):
                         avg_distance = sum(self.distance_to_goal_metric[i]) / len(self.distance_to_goal_metric[i])
-
-                        # We only start curriculum when the drone gets an average of 1.0 meter within the goal for the past 10 episodes.
-                        if (avg_distance <= 1.0) or (self.envs[i].curriculum_state):
+                        
+                        
+                        approx_total_training_steps = self.training_info.get('approx_total_training_steps', 0)
+                        
+                        # We only start curriculum when the drone gets an average of 0.75 meter within the goal for the past 10 episodes.
+                        # if (False):
+                        if (avg_distance <= 0.8) or (self.curriculum_state[i]) and (approx_total_training_steps > 300,000,000):
                             self.envs[i].update_curriculum_state(True)
-                            self.curriculum_state = copy.deepcopy(self.envs[i].curriculum_state)
+                            self.curriculum_state[i] = self.envs[i].curriculum_state
                 
                 self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers, curriculum_state=self.curriculum_state)
             else:

@@ -15,9 +15,10 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
     def __init__(self, quads_mode, envs, num_agents, room_dims):
         super().__init__(quads_mode, envs, num_agents, room_dims)
         self.approch_goal_metric = 0.5
-        self.goal_generator = []
 
-        
+        self.goal_generator = [QuadTrajGen(poly_degree=7) for i in range(num_agents)]
+        self.start_point = [np.zeros(3) for i in range(num_agents)]
+        self.end_point = [np.zeros(3) for i in range(num_agents)]
     def update_formation_size(self, new_formation_size):
         pass
 
@@ -34,6 +35,7 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
                 time = self.envs[0].sim_steps*tick*(self.envs[0].dt) #  Current time in seconds.
 
                 next_goal = self.goal_generator[i].piecewise_eval(time)
+                
                 self.end_point[i] = next_goal.as_nparray()
 
                 self.goals = copy.deepcopy(self.end_point)
@@ -54,15 +56,11 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
         obst_map_locs = np.where(self.obstacle_map == 0)
         self.free_space = list(zip(*obst_map_locs))
 
-        self.start_point = []
-        self.end_point = []
         for i in range(self.num_agents):
-            self.start_point.append(self.generate_pos_obst_map())
+            self.start_point[i] = self.generate_pos_obst_map()
             
             initial_state = traj_eval()
             initial_state.set_initial_pos(self.start_point[i])
-            
-            self.goal_generator.append(QuadTrajGen(poly_degree=7))
             
             final_goal = self.generate_pos_obst_map()
             
@@ -70,22 +68,23 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
             final_goal[2] = 0.65
             
             dist = np.linalg.norm(self.start_point[i] - final_goal)
-            
-            traj_duration = np.random.uniform(low = dist / 1.5, high=self.envs[0].ep_time-1)
 
+            # traj_duration = np.random.uniform(low=dist / 1.5, high=self.envs[0].ep_time-1)
+            
             # Fixate trajectory duration
             traj_duration = dist 
    
             goal_yaw = np.random.uniform(low=0, high=3.14/2)
+
             # Generate trajectory with random time from (2, ep_time)
             self.goal_generator[i].plan_go_to_from(initial_state=initial_state, desired_state=np.append(final_goal, goal_yaw), 
                                                    duration=traj_duration, current_time=0)
             
             #Find the initial goal
             if (curriculum_state[i]):
-                self.end_point.append(self.goal_generator[i].piecewise_eval(0).as_nparray())
+                self.end_point[i] = self.goal_generator[i].piecewise_eval(0).as_nparray()
             else:
-                self.end_point.append(self.goal_generator[i].piecewise_eval(self.envs[i].ep_time).as_nparray())
+                self.end_point[i] = self.goal_generator[i].piecewise_eval(self.envs[i].ep_time).as_nparray()
         
         self.update_formation_and_relate_param()
 
