@@ -425,7 +425,7 @@ class QuadrotorEnvMulti(gym.Env, TrainingInfoInterface):
                         
                         approx_total_training_steps = self.training_info.get('approx_total_training_steps', 0)
                         
-                        # We only start curriculum when the drone gets an average of 0.75 meter within the goal for the past 10 episodes.
+                        # We only start curriculum when the drone gets an average of 0.8 meter within the goal for the past 10 episodes.
                         # if (False):
                         if (avg_distance <= 0.8) or (self.curriculum_state[i]) and (approx_total_training_steps > 300,000,000):
                             self.envs[i].update_curriculum_state(True)

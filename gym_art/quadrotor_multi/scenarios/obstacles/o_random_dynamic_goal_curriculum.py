@@ -9,8 +9,8 @@ from gym_art.quadrotor_multi.quadrotor_planner import traj_eval
 
 class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
     """ This scenario implements a 13 dim goal that tracks a smooth polynomial trajectory. 
-        Each goal point is evaluated through the polynomial generated per reset. This specific
-        implementation increases the number of polynomial evaluations by the success of training."""
+        Each goal point is evaluated through the polynomial generated per reset. Dynamic goal is only 
+        used when the curriculum is activated."""
         
     def __init__(self, quads_mode, envs, num_agents, room_dims):
         super().__init__(quads_mode, envs, num_agents, room_dims)
@@ -19,20 +19,19 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
         self.goal_generator = [QuadTrajGen(poly_degree=7) for i in range(num_agents)]
         self.start_point = [np.zeros(3) for i in range(num_agents)]
         self.end_point = [np.zeros(3) for i in range(num_agents)]
+
     def update_formation_size(self, new_formation_size):
         pass
 
     def step(self, curriculum_state):
+
+        tick = self.envs[0].tick
+        
+        time = self.envs[0].sim_steps*tick*(self.envs[0].dt) #  Current time in seconds.
         
         for i in range(self.num_agents):
             
             if (curriculum_state[i]):
-                        
-                self.update_formation_and_relate_param()
-
-                tick = self.envs[0].tick
-                
-                time = self.envs[0].sim_steps*tick*(self.envs[0].dt) #  Current time in seconds.
 
                 next_goal = self.goal_generator[i].piecewise_eval(time)
                 
@@ -69,12 +68,9 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
             
             dist = np.linalg.norm(self.start_point[i] - final_goal)
 
-            # traj_duration = np.random.uniform(low=dist / 1.5, high=self.envs[0].ep_time-1)
-            
-            # Fixate trajectory duration
-            traj_duration = dist 
+            traj_duration = np.random.uniform(low=dist / 2.0, high=self.envs[0].ep_time-2)
    
-            goal_yaw = np.random.uniform(low=0, high=3.14/2)
+            goal_yaw = np.random.uniform(low=-3.14, high=3.14)
 
             # Generate trajectory with random time from (2, ep_time)
             self.goal_generator[i].plan_go_to_from(initial_state=initial_state, desired_state=np.append(final_goal, goal_yaw), 
@@ -85,10 +81,7 @@ class Scenario_o_random_dynamic_goal_curriculum(Scenario_o_base):
                 self.end_point[i] = self.goal_generator[i].piecewise_eval(0).as_nparray()
             else:
                 self.end_point[i] = self.goal_generator[i].piecewise_eval(self.envs[i].ep_time).as_nparray()
-        
-        self.update_formation_and_relate_param()
 
-        self.formation_center = np.array((0., 0., 2.))
         self.spawn_points = copy.deepcopy(self.start_point)
         
         self.goals = copy.deepcopy(self.end_point)
