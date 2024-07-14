@@ -27,9 +27,10 @@ class QuadPlanner:
 @dataclass
 class poly4d:
     """ Dataclass for a single basis function with a state dimension of 4: x-y-z-yaw """
-    degree: int = 7
-    poly: np.ndarray = np.empty([4, degree + 1])
-    duration: float = 0
+    def __init__ (self, degree):
+        self.degree: int = degree
+        self.poly: np.ndarray = np.empty([4, degree + 1])
+        self.duration: float = 0
 
 @dataclass
 class traj_eval:
@@ -41,11 +42,12 @@ class traj_eval:
         yaw: Radians
         NOTE: All values default to zero.
     """
-    pos: np.ndarray = np.zeros(3) 
-    vel: np.ndarray = np.zeros(3)
-    acc: np.ndarray = np.zeros(3)
-    omega: np.ndarray = np.zeros(3)
-    yaw: float = 0
+    def __init__ (self):
+        self.pos: np.ndarray = np.zeros(3) 
+        self.vel: np.ndarray = np.zeros(3)
+        self.acc: np.ndarray = np.zeros(3)
+        self.omega: np.ndarray = np.zeros(3)
+        self.yaw: float = 0
 
     def set_initial_pos(self, state: np.ndarray):
         """ Sets the corresponding states based on input state: [x,y,z,yaw] """
