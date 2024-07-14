@@ -18,9 +18,10 @@ from gym_art.quadrotor_multi.obstacles.obstacles import MultiObstacles
 from gym_art.quadrotor_multi.quadrotor_multi_visualization import Quadrotor3DSceneMulti
 from gym_art.quadrotor_multi.quadrotor_single import QuadrotorSingle
 from gym_art.quadrotor_multi.scenarios.mix import create_scenario
+from sample_factory.envs.env_utils import TrainingInfoInterface
 
 
-class QuadrotorEnvMulti(gym.Env):
+class QuadrotorEnvMulti(gym.Env, TrainingInfoInterface):
     def __init__(self, num_agents, ep_time, rew_coeff, obs_repr, obs_rel_rot, dynamic_goal,
                  # Neighbor
                  neighbor_visible_num, neighbor_obs_type, collision_hitbox_radius, collision_falloff_radius,
@@ -38,10 +39,15 @@ class QuadrotorEnvMulti(gym.Env):
                  dynamics_params, raw_control, raw_control_zero_middle,
                  dynamics_randomize_every, dynamics_change, dyn_sampler_1,
                  sense_noise, init_random_state,
+                                  
+                 # Scenario Curriculum
+                 use_curriculum,
+                 
                  # Rendering
                  render_mode='human'
                  ):
         super().__init__()
+        TrainingInfoInterface.__init__(self)
 
         # Predefined Parameters
         self.num_agents = num_agents
@@ -223,6 +229,11 @@ class QuadrotorEnvMulti(gym.Env):
 
         # Others
         self.apply_collision_force = True
+        
+        #Curriculum Metric
+        self.curriculum_state = [False for _ in range(len(self.envs))]
+        self.use_curriculum = use_curriculum
+        self.distance_to_goal_metric = [[] for _ in range(len(self.envs))] #Tracks the distance to goal for last 10 episode_extra_stats
 
     def all_dynamics(self):
         return tuple(e.dynamics for e in self.envs)
@@ -397,7 +408,34 @@ class QuadrotorEnvMulti(gym.Env):
                 self.grid_size = np.round(tmp_grid_size, 1)
 
             self.obst_map, obst_pos_arr, cell_centers = self.obst_generation_given_density()
-            self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers)
+            
+            # Scenario based curriculum
+            if (self.use_curriculum):
+                for i in range(self.num_agents):
+                    
+                    # Curriculum Statistics
+                    if len(self.distance_to_goal_xy[i]) != 0: #Only append if we have data
+                        if len(self.distance_to_goal_metric[i]) == 20:
+                            self.distance_to_goal_metric[i].pop(0)
+                        self.distance_to_goal_metric[i].append(abs(self.distance_to_goal_xy[i][-1]) + abs(self.distance_to_goal_z[i][-1]))
+                    
+                    if (len(self.distance_to_goal_metric[i]) == 20):
+                        avg_distance = sum(self.distance_to_goal_metric[i]) / len(self.distance_to_goal_metric[i])
+                        
+                        
+                        approx_total_training_steps = self.training_info.get('approx_total_training_steps', 0)
+                        
+                        # We only start curriculum when the drone gets an average of 0.8 meter within the goal for the past 10 episodes.
+                        # if (False):
+                        if (avg_distance <= 0.8) or (self.curriculum_state[i]) and (approx_total_training_steps > 300,000,000):
+                            self.envs[i].update_curriculum_state(True)
+                            self.curriculum_state[i] = self.envs[i].curriculum_state
+                
+                self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers, curriculum_state=self.curriculum_state)
+            else:
+                self.scenario.reset(obst_map=self.obst_map, cell_centers=cell_centers)
+            
+          
         else:
             self.scenario.reset()
 
@@ -465,7 +503,7 @@ class QuadrotorEnvMulti(gym.Env):
             self.reset_scene = True
             self.quads_formation_size = self.scenario.formation_size
             self.all_collisions = {val: [0.0 for _ in range(len(self.envs))] for val in ['drone', 'ground', 'obstacle']}
-
+        
         return obs
 
     def step(self, actions):
@@ -665,7 +703,10 @@ class QuadrotorEnvMulti(gym.Env):
                     perform_collision_with_ceiling(drone_dyn=self.envs[val].dynamics)
 
         # 4. Run the scenario passed to self.quads_mode
-        self.scenario.step()
+        if(self.use_curriculum):
+            self.scenario.step(self.curriculum_state)
+        else:
+            self.scenario.step()
 
         # 5. Collect final observations
         # Collect positions after physical interaction
