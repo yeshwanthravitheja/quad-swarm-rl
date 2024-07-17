@@ -33,7 +33,7 @@ class Scenario_o_random_dynamic_goal(Scenario_o_base):
     
             self.end_point[i] = next_goal.as_nparray()
             
-            self.goals = copy.deepcopy(self.end_point)
+        self.goals = copy.deepcopy(self.end_point)
             
         for i, env in enumerate(self.envs):
             env.goal = self.end_point[i]
