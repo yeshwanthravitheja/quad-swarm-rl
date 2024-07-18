@@ -226,8 +226,6 @@ class QuadTrajGen:
 
         out.omega = np.array([roll_rate, pitch_rate, yaw_rate])
 
-        self.stored_goal_points.append(out)
-
         return out    
 
 

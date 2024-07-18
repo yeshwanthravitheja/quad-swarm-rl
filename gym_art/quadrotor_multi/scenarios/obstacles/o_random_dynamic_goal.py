@@ -33,11 +33,11 @@ class Scenario_o_random_dynamic_goal(Scenario_o_base):
     
             self.end_point[i] = next_goal.as_nparray()
             
-            self.goals = copy.deepcopy(self.end_point)
+        self.goals = copy.deepcopy(self.end_point)
             
         for i, env in enumerate(self.envs):
             env.goal = self.end_point[i]
-
+        print(self.goals[0][2])
         return
 
     def reset(self, obst_map, cell_centers): 
@@ -52,12 +52,10 @@ class Scenario_o_random_dynamic_goal(Scenario_o_base):
         self.free_space = list(zip(*obst_map_locs))
 
         for i in range(self.num_agents):
-            self.start_point.append(self.generate_pos_obst_map())
+            self.start_point[i] = self.generate_pos_obst_map()
             
             initial_state = traj_eval()
             initial_state.set_initial_pos(self.start_point[i])
-            
-            self.goal_generator.append(QuadTrajGen(poly_degree=7))
             
             final_goal = self.generate_pos_obst_map()
             
@@ -75,11 +73,14 @@ class Scenario_o_random_dynamic_goal(Scenario_o_base):
                                                    duration=traj_duration, current_time=0)
 
             #Find the initial goal
-            self.end_point.append(self.goal_generator[i].piecewise_eval(0).as_nparray())
+            self.end_point[i] = self.goal_generator[i].piecewise_eval(0).as_nparray()
 
         self.spawn_points = copy.deepcopy(self.start_point)
         
         self.goals = copy.deepcopy(self.end_point)
+
+        for i, env in enumerate(self.envs):
+            env.dynamic_goal = True
         
         
         

@@ -35,7 +35,7 @@ def make_quadrotor_env_multi(cfg, render_mode=None, **kwargs):
 
     env = QuadrotorEnvMulti(
         num_agents=cfg.quads_num_agents, ep_time=cfg.quads_episode_duration, rew_coeff=rew_coeff,
-        obs_repr=cfg.quads_obs_repr, obs_rel_rot=cfg.quads_obs_rel_rot, dynamic_goal=cfg.quads_dynamic_goal,
+        obs_repr=cfg.quads_obs_repr, obs_rel_rot=cfg.quads_obs_rel_rot, dynamic_goal=False,
         use_curriculum=cfg.quads_use_curriculum,
         # Neighbor
         neighbor_visible_num=cfg.quads_neighbor_visible_num, neighbor_obs_type=cfg.quads_neighbor_obs_type,
