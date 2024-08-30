@@ -14,7 +14,7 @@ python -m swarm_rl.train \
 --adaptive_stddev=False \
 --with_vtrace=False \
 --max_policy_lag=100000000 \
---rnn_size=256 \
+--rnn_size=128 \
 --gae_lambda=1.00 \
 --max_grad_norm=5.0 \
 --exploration_loss_coeff=0.0 \
@@ -31,17 +31,17 @@ python -m swarm_rl.train \
 --quads_mode=mix \
 --quads_episode_duration=15.0 \
 --quads_obs_repr=xyz_vxyz_R_omega \
---quads_neighbor_hidden_size=256 \
+--quads_neighbor_hidden_size=128 \
 --quads_neighbor_obs_type=pos_vel \
 --quads_collision_hitbox_radius=2.0 \
 --quads_collision_falloff_radius=4.0 \
 --quads_collision_reward=5.0 \
 --quads_collision_smooth_max_penalty=10.0 \
---quads_neighbor_encoder_type=attention \
+--quads_neighbor_encoder_type=mean_embed \
 --quads_neighbor_visible_num=6 \
 --quads_use_obstacles=False \
 --quads_use_downwash=True \
---experiment=test_multi_drone
+--experiment=test_deepsets_rnn_128_neighbour_hidden_128
 
 
 : << 'COMMENT'

@@ -37,11 +37,11 @@ python -m swarm_rl.train \
 --quads_collision_falloff_radius=4.0 \
 --quads_collision_reward=5.0 \
 --quads_collision_smooth_max_penalty=10.0 \
---quads_neighbor_encoder_type=attention \
+--quads_neighbor_encoder_type=mean_embed \
 --quads_neighbor_visible_num=6 \
 --quads_use_obstacles=False \
 --quads_use_downwash=True \
---experiment=test_multi_drone
+--experiment=test_deepsets_rnn_256_neighbour_hidden_256
 
 
 : << 'COMMENT'

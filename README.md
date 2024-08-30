@@ -128,3 +128,5 @@ If you use this repository in your work or otherwise wish to cite it, please mak
 ```
 
 Github issues and pull requests are welcome.
+
+python -m swarm_rl.enjoy --algo=APPO --env=quadrotor_multi --replay_buffer_sample_prob=0 --quads_use_numba=False --train_dir=./train_dir --experiment=paper_quads_multi_mix_baseline_8a_attn_v116/single_/00_single_see_0 --quads_view_mode=global --quads_render=True
